@@ -1,0 +1,56 @@
+{
+
+  "name" : "WikiGram",
+  "version" : "1.0",
+  "description" : "wikigram extractor",
+  "background" : {
+    "scripts": ["background.js"]
+  },
+  "browser_action" :
+  {
+    "default_icon" : "sandwich-19.png",
+    "default_title" : "open wikigram!"
+  },
+  "content_scripts" : [
+    {
+      "matches" : ["<all_urls>"],
+      "js" : [	"js/lib/jquery.min.js",
+      			"js/lib/jquery.mousewheel.min.js",
+      			"js/lib/underscore-min.js",
+      			"js/lib/mustache.js",
+      			"js/lib/utils.js",
+      			"js/wg.js",
+      			"js/column.js",
+      			"js/generator.js",
+      			"js/inspector.js",
+      			"js/operation.js",
+      			"js/program.js",
+      			"js/candidate.js",
+      			"js/selectionBox.js",
+      			"js/sheet.js",
+      			"js/widget.js",
+      			"contentscript.js"
+      		],
+      "css": ["wikiGram.css"],
+      "run_at" : "document_idle",
+      "all_frames" : true
+    }
+  ],
+  "icons" : {
+    "48" : "sandwich-48.png",
+    "128" : "sandwich-128.png"
+  },
+  "permissions": [
+    "tabs",
+    "bookmarks",
+    "contextMenus",
+    "notifications",
+    "storage",
+    "http://*/*", "https://*/*"
+  ],
+  "web_accessible_resources": [
+    "UIpanel.html",
+    "wikiGram.css"
+  ],
+  "manifest_version": 2
+}
