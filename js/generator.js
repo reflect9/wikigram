@@ -14,80 +14,106 @@ wg.Generator = function() {
 	this.GenerateProcedure = function(I,O,A) {
 		var P;	// candidate programs, where a program is sequential sub-procedure
 		if(isDomList(I)) {  // if I a DOM list
-			var candidateQueries = GenerateSelect(I,O);
+//			var candidateQueries = GenerateSelect(I,O);
 			// each query has multiple steps. so we need to unpack them.
-			var P = _.map(candidateQueries, function(q) {
-				var seq = [];
-				if (q.q_rep) seq.push({type:'PositionQuery',path:q.q_rep});
-				if (q.q_leaf && q.q_leaf!=" ") seq.push({type:'PositionQuery',path:q.q_leaf});
-				if (q.q_attr) seq.push({type:'Attribute', key:q.q_attr});
-				// these steps are all 'Select'.
-				var P_seq= _.map(seq, function(p) { return {type:'Select',query: p}; });
-				return P_seq;
-			});
+//		var P = _.map(candidateQueries, function(q) {
+//			var seq = [];
+//			if (q.q_rep) seq.push({type:'PositionQuery',path:q.q_rep});
+//			if (q.q_leaf && q.q_leaf!=" ") seq.push({type:'PositionQuery',path:q.q_leaf});
+//			if (q.q_attr) seq.push({type:'Attribute', key:q.q_attr});
+//			// these steps are all 'Select'.
+//			var P_seq= _.map(seq, function(p) { return {type:'Select',query: p}; });
+//			return P_seq;
+//		});
 			// now P has a list of multi-step selection 'Select' procedures
-			return P;
+			return GenerateSelect(I,O);
 		} else { // I is a variableList
 			if(isDomList(O)){
 				// only OUTPUT is nodeType
-				P=[{type:'Create', operation: GenerateCreate(I,O)}];
-			} else P=[{type:'Transform', operation: GenerateTransform(I,O,A)}];
+				P=[{type:'Create', operation: GenerateCreate(I,O), description:"Create a new DOM element."}];
+			} else P=[{type:'Transform', operation: GenerateTransform(I,O,A),description:"Transform input to output."}];
 		}
 		return P;
 	}
+	/*
+	 *  GenerateSelect : finding output DOM within input DOM
+	 * 		I: Input DOM(s) to find O within. 
+	 * 		O: Output DOM that we are looking for.
+	 */
 	GenerateSelect= function(I,O) {
 		var Q={}; // key: output index,  value: query object
-		$.each(O, function(oi,o) {
-			var D_leaf;	// array of all leaf nodes matching with o
-			if(_.isString(o) || _.isNumber(o)) {	// it it looks for string or number variable
-				D_leaf = $.makeArray($("*:contains('"+o+"')"));	
-				D_leaf = _.filter(D_leaf, function(d) {
-					return ($(d).justtext().indexOf(o)!=-1);
-				});
-			} else if(o.nodeType) { // if the output looking for is DOM element
-				D_leaf = [o];
-			}
-			$.each(D_leaf, function(dli,d_leaf) {
-				var D_rep = $(d_leaf).add($.makeArray($(d_leaf).parents()));
-				// for each d, create path for it and its siblings
-				$.each(D_rep, function(di,d_rep) {
-					// first, check whether D_rep has many siblings having similar fingerprint of their strucutre
-					if(["HTML","BODY"].indexOf($(d_rep).prop("tagName"))!=-1) return;
-					var q_rep, q_leaf, q_attr;
-					var f_rep = $(d_rep).fingerprint();
-					var d_sib = _.filter($(d_rep).parent().children(), function(child) {
-						return $(child).fingerprint()==f_rep;
-					},this);
-					// check D_rep is i-th element among D_sib
-					if($(d_sib).index(d_rep)==oi) {
-						// q_rep is the path from I to d_sib
-						q_rep = $(d_rep).pathWithClass();
-						// q_leaf is the path from q_rep to d_leaf
-						if($(d_leaf).fingerprint()==$(d_rep).fingerprint()) { // if d_rep is the leaf node, 
-							q_leaf = " ";
-						} else {
-							q_leaf = $(d_leaf).leafNodePath(d_rep);
-						} 
-						// q_attr is the attribute key of d_leaf for getting o
-						q_attr = "text";
-						if(!(oi in Q)) Q[oi] = [];
-						Q[oi].push({type:"PositionQuery", "q_rep":q_rep,"f_rep":f_rep,"q_leaf":q_leaf,"q_attr":q_attr,"num_siblings":d_sib.length});
-					}
-				});	// each D_rep
-			});	// each D_leaf
-		}); // each O
-		// Q[index of output][q1,q2,q3] -->  Q[q1 which appears in all the output]
-		var qDict = {};
-		_.each(Q, function(qList,i) {
-			_.each(qList, function(q, j) {
-				var qStr = JSON.stringify(q);
-				if(!(qStr in qDict)) qDict[qStr]=0;
-				qDict[qStr] = qDict[qStr]+1;
-			},this);
-		},this);
-		var qList_valid = [];
-		_.each(qDict, function(num,qStr) { if(num==O.length) qList_valid.push($.parseJSON(qStr)); }, this);
-		return qList_valid;
+		var commonAncester = getCommonAncestorMultiple(O);
+		var pathToAncester = $(commonAncester).pathWithNth(I[0]);
+		// collect paths from anscester's children to output nodes
+		var pathFromRepToLeaf = _.uniq(_.map(O, function(o,i) { 
+			return $(o).leafNodePath(commonAncester);
+		}));
+		console.log(pathFromRepToLeaf);
+		if(pathFromRepToLeaf.length>1) return [];
+		// valid siblings should have an element in itself accessible with any of pathFromRepToLeaf list  
+		var validSiblings = _.filter($(commonAncester).children(), function(el) {
+			var potentialLeafOfSibling = _.map(pathFromRepToLeaf, function(path) {
+				return $(el).find(path);
+			}); 
+			if(potentialLeafOfSibling.length>0) return true;  
+			else return false;
+		}); 
+		return [[	{type:"Select",query:{type:"PositionQuery",path:pathToAncester},description:"Select a set elements from DOM."},
+					{type:"Select",query:{type:"PositionQuery",path:pathFromRepToLeaf},description:"Select a set elements from DOM."}
+		]];
+		
+		
+//	$.each(O, function(oi,o) {
+//		var D_leaf;	// array of all leaf nodes matching with o
+//		if(_.isString(o) || _.isNumber(o)) {	// it it looks for string or number variable
+//			D_leaf = $.makeArray($("*:contains('"+o+"')"));	
+//			D_leaf = _.filter(D_leaf, function(d) {
+//				return ($(d).justtext().indexOf(o)!=-1);
+//			});
+//		} else if(o.nodeType) { // if the output looking for is DOM element
+//			D_leaf = [o];
+//		}
+//		$.each(D_leaf, function(dli,d_leaf) {
+//			var D_rep = $(d_leaf).add($.makeArray($(d_leaf).parents()));
+//			// for each d, create path for it and its siblings
+//			$.each(D_rep, function(di,d_rep) {
+//				// first, check whether D_rep has many siblings having similar fingerprint of their strucutre
+//				if(["HTML","BODY"].indexOf($(d_rep).prop("tagName"))!=-1) return;
+//				var q_rep, q_leaf, q_attr;
+//				var f_rep = $(d_rep).fingerprint();
+//				var d_sib = _.filter($(d_rep).parent().children(), function(child) {
+//					return $(child).fingerprint()==f_rep;
+//				},this);
+//				// check D_rep is i-th element among D_sib
+//				if($(d_sib).index(d_rep)==oi) {
+//					// q_rep is the path from I to d_sib
+//					q_rep = $(d_rep).pathWithClass();
+//					// q_leaf is the path from q_rep to d_leaf
+//					if($(d_leaf).fingerprint()==$(d_rep).fingerprint()) { // if d_rep is the leaf node, 
+//						q_leaf = " ";
+//					} else {
+//						q_leaf = $(d_leaf).leafNodePath(d_rep);
+//					} 
+//					// q_attr is the attribute key of d_leaf for getting o
+//					q_attr = "text";
+//					if(!(oi in Q)) Q[oi] = [];
+//					Q[oi].push({type:"PositionQuery", "q_rep":q_rep,"f_rep":f_rep,"q_leaf":q_leaf,"q_attr":q_attr,"num_siblings":d_sib.length});
+//				}
+//			});	// each D_rep
+//		});	// each D_leaf
+//	}); // each O
+//	// Q[index of output][q1,q2,q3] -->  Q[q1 which appears in all the output]
+//	var qDict = {};
+//	_.each(Q, function(qList,i) {
+//		_.each(qList, function(q, j) {
+//			var qStr = JSON.stringify(q);
+//			if(!(qStr in qDict)) qDict[qStr]=0;
+//			qDict[qStr] = qDict[qStr]+1;
+//		},this);
+//	},this);
+//	var qList_valid = [];
+//	_.each(qDict, function(num,qStr) { if(num==O.length) qList_valid.push($.parseJSON(qStr)); }, this);
+//		return qList_valid;
 	}
 	GenerateTransform= function(Vin,Vout,Vargs) {
 		var T = [];  // candidate transformations

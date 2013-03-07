@@ -4,12 +4,12 @@
  */
 
 wg.Operation = function() {
-	this.type = null;
-	this.argument = null;
+	this.description = null;
+	this.procedure = null;
 	
-	this.init = function(type,argument) {
-		this.type = type;
-		this.argument = argument;
+	this.init = function(op) {
+		this.procedure = (op&&op.procedure)? op.procedure : "";
+		this.description = (op&&op.description)? op.description : "";
 	}
 	
 	this.run = function(I) {
@@ -17,6 +17,7 @@ wg.Operation = function() {
 	};
 	
 }
+
 /*
  * 	wg.runner is a general purpose runner for a pair of an input and an operation
  */
@@ -24,12 +25,12 @@ wg.runner = {
 	/*
 	 *	top-level function  
 	 */
-	run: function(I,op) {
-		if(op.type=='Select') {
-			return this.select(I,op.query);
-		} else if(op.type=='Transform') {
-			return this.transform(I,op.expression);
-		} else if(op.type=='Create') {
+	run: function(I,procedure) {
+		if(procedure.type=='Select') {
+			return this.select(I,procedure.query);
+		} else if(procedure.type=='Transform') {
+			return this.transform(I,procedure.expression);
+		} else if(procedure.type=='Create') {
 			//return this.create(I,op.operation);
 		}
 	},

@@ -56,9 +56,9 @@ wg.widget = {
 	// return DIV of the column representing the column
 	createColumn: function(column) {
 		var col = $("<div class='wg_column'></div>");
-		var op_row = $("<div class='wg_cell wg_cell_op' row_id='op'><button class='btn btn-mini btn_infer'>INFER</button><span class='candidates'></span></div>").appendTo(col);
+		var op_row = $("<div class='wg_cell wg_cell_op' row_id='op'></div>").appendTo(col);
 		//$(op_row).find(".but").click();
-		var arg_row = $("<div class='wg_cell wg_cell_arg' row_id='arg' contenteditable='true'></div>").appendTo(col);
+		//var arg_row = $("<div class='wg_cell wg_cell_arg' row_id='arg' contenteditable='true'></div>").appendTo(col);
 		_.each(column.row, function(v, i) {
 			var row = $("<div class='wg_cell wg_cell_variable' row_id='"+i+"' contenteditable='true'></div>").appendTo(col);
 			$(row).text(var2txt(v));
@@ -124,6 +124,34 @@ wg.widget = {
 		// update cellElement text
 		this.updateColumn(this.focus);
 		this.focusMove("down");
+	},
+	/*
+	 * 	shows a pop-up of a single column's operation detail.  
+	 */
+	showOperationDetail: function(opEl) {
+		var pos = wg.widget.getCellPosition(opEl);
+		// get operation data from wg.prgram using pos
+		var op = wg.program.getColumn(pos).operation;
+		// create operation detail balloon 
+		var opContainer = $("<div class='wg_op_container'></div>");
+		// Info area
+		var opInfo = $("<div class='wg_op_detail_info'></div>").appendTo(opContainer);
+			$("<div class='wg_op_label'>OPERATION</div>").appendTo(opInfo);
+		var opInfo_title = $("<div class='wg_op_title'></div>").text(op.description).appendTo(opInfo);
+			$("<div class='wg_op_label'>INPUT SOURCE</div>").appendTo(opInfo);
+		var opInfo_input = $("<div class='wg_op_input wg_op_italic' contenteditable='true'>previous column</div>").appendTo(opInfo);
+			$("<div class='wg_op_label'>ARGUMENT</div>").appendTo(opInfo);
+		var opInfo_arg = $("<div class='wg_op_arg wg_op_italic' contenteditable='true'>...</div>").appendTo(opInfo);
+		// Tools and buttons
+		var opTools = $("<div class='wg_op_detail_tools'></div>").appendTo(opContainer);
+		var button_copy = $("<button class='btn btn_small' disabled>COPY</div>");
+		var button_paste = $("<button class='btn btn_small' disabled>PASTE</div>");
+		var button_infer = $("<button class='btn btn_small'>INFER OPERATION</div>");
+		
+		// now attach to the column 
+		$(opContainer).offset({left:0, top:250});
+		$(wg.widget.palette).append(opContainer);
+		
 	},
 	/*
 	 * called after one column's candidates have been changed .  
@@ -197,6 +225,19 @@ wg.widget = {
 			var si = $(this).parents(".wg_sheet").myIndex();
 			var ci = $(this).parents(".wg_column").myIndex();
 			wg.program.sheets[si].columns[ci].infer();
+		});
+		// operation row of each column
+		$("#wikigram_palette").on('click','.wg_cell_op',function() {
+			// if it's already showing operation detail, remove it.  
+			if($("#wikigram_palette").find(".wg_op_container").length>0) {
+				$("#wikigram_palette").find(".wg_op_container").remove();
+				$(".wg_sheet").removeClass("noScroll");
+			}
+			// otherwise create a new one. 
+			else {
+				wg.widget.showOperationDetail(this);
+				$(".wg_sheet").addClass("noScroll");
+			}
 		});
 		
 	}

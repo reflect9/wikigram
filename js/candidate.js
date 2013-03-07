@@ -19,8 +19,8 @@ wg.Candidate = function() {
 			var btn = $("<span class='candidateBtn badge' cID='"+candIndex+"'></span>")
 					.text(candIndex).appendTo(this.candidateHolder);
 			$(btn).click(function() {
-				console.log("aha");
-			});
+				console.log(data);
+			},this);
 			return btn;
 		},this);
 		this.description = $("<div class='candidateDescription'></div>").appendTo(this.bgBox);

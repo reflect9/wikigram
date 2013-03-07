@@ -14,6 +14,7 @@ wg.Column = function() {
 	
 	this.init = function() {
 		this.row = _.map(_.range(50), function() { return null; });
+		this.operation = new wg.Operation();
 		this.type = null;
 	}; 
 	
