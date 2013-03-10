@@ -14,15 +14,15 @@ jQuery.fn.justtext = function() {
 };
 jQuery.fn.fingerprint = function() {
 	var  childrenPrint = "";
-	if($(this).children().length>0) 
+	if($(this).children().length>0)
 		var childrenPrint = "["+ _.reduce($(this).children(), function(memo,child) {
-			return memo + "," + $(child).fingerprint(); 
+			return memo + "," + $(child).fingerprint();
 		},"") +"]";
 	return $(this).prop("tagName")+childrenPrint;
 }
 jQuery.fn.pathWithNth = function(root) {
-	return _.reduce($(this).parentsUntil(root), function(memo,p) { 
-			return $(p).tagNth()+" > "+memo;  
+	return _.reduce($(this).parentsUntil(root), function(memo,p) {
+			return $(p).tagNth()+" > "+memo;
 	},$(this).prop("tagName"));
 }
 jQuery.fn.leafNodePath = function(commonAncester) {
@@ -32,29 +32,29 @@ jQuery.fn.leafNodePath = function(commonAncester) {
 	},$(this).tagClassNth());
 }
 jQuery.fn.path = function() {
-	return _.reduce($(this).parents(), function(memo,p) { 
-			return $(p).tag()+" "+memo;  
+	return _.reduce($(this).parents(), function(memo,p) {
+			return $(p).tag()+" "+memo;
 	},"");
 }
 jQuery.fn.tagClassNth = function() {
 	var tag = $(this).prop("tagName");
-	if ($(this).attr("class"))  var cls = "."+$(this).attr("class").trim().replace(/\s+/g,"."); 
+	if ($(this).attr("class"))  var cls = "."+$(this).attr("class").trim().replace(/\s+/g,".");
 	else var cls="";
 	var siblings = $(this).parent().children();
 	if(siblings.length>1) {
-		var nth = ":nth-child("+(siblings.index(this)+1)+")";	
+		var nth = ":nth-child("+(siblings.index(this)+1)+")";
 	} else nth = "";
-	return tag+cls+nth;		
+	return tag+cls+nth;
 }
 jQuery.fn.tagNth = function() {
 	var tag = $(this).prop("tagName");
-	//if ($(this).attr("class"))  var cls = "."+$(this).attr("class").trim().replace(/\s+/g,"."); 
+	//if ($(this).attr("class"))  var cls = "."+$(this).attr("class").trim().replace(/\s+/g,".");
 	//else var cls="";
 	var siblings = $(this).parent().children();
 	if(siblings.length>1) {
-		var nth = ":nth-child("+(siblings.index(this)+1)+")";	
+		var nth = ":nth-child("+(siblings.index(this)+1)+")";
 	} else nth = "";
-	return tag+nth;		
+	return tag+nth;
 }
 jQuery.fn.tagAndClass = function() {
 	var q = $(this).prop("tagName");
@@ -69,7 +69,7 @@ jQuery.fn.trimArray = function() {
 	var result = [];   var validity = true;
 	_.each(this, function(v) {
 		if(v==null || v=="") validity=false;
-		if(validity) result.push(v);	
+		if(validity) result.push(v);
 	});
 	return result;
 }
@@ -97,7 +97,7 @@ var getCommonAncestor = function(a,b) {
     return found;
 }
 var RegexProduct = function(rlist) {
-	var resultReg=[];  var rL = _.union(rlist,/^/);  var rR = _.union(rlist,/$/); 
+	var resultReg=[];  var rL = _.union(rlist,/^/);  var rR = _.union(rlist,/$/);
 	for(var i in rL) {
 		for(var j in rR) {
 			if(rL[i]==rR[j]) continue;
@@ -107,12 +107,11 @@ var RegexProduct = function(rlist) {
 	return _.uniq(resultReg);
 }
 var isDomList = function(list) {
-	return (list[0].nodeType!=null);	
+	return (list[0].nodeType!=null);
 }
 var isValueList = function(list) {
-	return (list[0].nodeType==null);	
+	return (list[0].nodeType==null);
 }
-
 var isSameArray = function(a1, a2, option) {
 	var aa1=a1; var aa2=a2;
 	if(option=="ALLOW_PARTIAL_OUTPUT") { aa1 = a1.slice(0,a2.length); aa2=a2; }
@@ -132,13 +131,11 @@ var isPermutation = function(a1, a2) {
 	if (a2c.length>0) return false;
 	return true;
 }
-var remove = function(list, removeItem) {	
+var remove = function(list, removeItem) {
 	return jQuery.grep(list, function(value) {
 	  return value != removeItem;
 	});
-}		
-
-		
+}
 var obj2text = function(obj) {
 	if(obj.nodeType!=null) {
 		// DOM
@@ -147,7 +144,6 @@ var obj2text = function(obj) {
 		return JSON.stringify(obj);
 	}
 }
-
 // convert ill-structured test to list or single string/integer
 var txt2var = function(txt) {
 	try{
@@ -168,22 +164,20 @@ var var2txt = function(v) {
 		// variable is DOM element
 		return "[D:"+$(v).prop('tagName')+"]"+$(v).text();
 	} else {
-		return JSON.stringify(v).replace(/^\"/ig,"").replace(/\"$/ig,"");	
+		return JSON.stringify(v).replace(/^\"/ig,"").replace(/\"$/ig,"");
 	}
 }
-
-
 var str2value = function(str) {
 	var list = str.replace(/[\"|\[\]]/g,"").split(",");
 	parsedList = _.map(list, function(e) {
 		e = $.trim(e);
 		if(_.isNaN(parseFloat(e))) return e;
 		else return parseFloat(e);
-	}); 
+	});
 	return parsedList;
 }
 if(typeof(String.prototype.trim) === "undefined") {
-    String.prototype.trim = function() 
+    String.prototype.trim = function()
     {
         return String(this).replace(/^\s+|\s+$/g, '');
     };

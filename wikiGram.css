@@ -74,9 +74,7 @@
     -moz-box-shadow: inset 0 0 3px 3px lightblue;
     box-shadow: inset 0 0 3px 3px lightblue;
 }
-.wikigram_container div {
-	display:inline;
-}
+
 .wikigram_container {
 	display:block !important;
 	position: absolute;
@@ -116,9 +114,9 @@
 	font-size:16px;
 }
 .wg_cell {
+	display: block !important;
 	height:21px;
 	padding:2px;
-	display:block !important;
 	text-align:left;
 	font-size:14px;
 	border-bottom:1px solid #008000;
@@ -128,8 +126,6 @@
 }
 .wg_cell_op {
 	background-color: #008000;
-	display: inline-block !important;
-	width:150px;
 	height:23px;
 }
 .wg_cell_arg {
@@ -151,23 +147,24 @@
 }
 .wg_sheet {
 	display:block !important;
-	position:relative;
 	height:250px;
 	width:100%;
 	overflow-x:auto;
-	overflow-y:hidden;
+	overflow-y:auto;
+	/*white-space: nowrap;*/
 	border-bottom:4px solid green;
 }
 .wg_sheet_header {
-	display:block !important;
-	white-space: nowrap;
-	overflow:hidden;
+	height:30px;
+	background-color:#FBEED5;
+	position:absolute;
+	display:none;
+	width:100%;
 }
 .wg_sheet_columns {
 	white-space: nowrap;
-	overflow-y:scroll;
-	overflow-x:hidden;
-	width:100%;
+	width:auto;
+	display:block !important;
 }
 .candidateBox {
 	position:absolute;
@@ -175,12 +172,12 @@
 	top:0px;
 	right:0px;
 	margin-right:-312px;
-	background-color:#FBEED5;
-	border:1px solid #666;
+	background-color:#FFFFFF;
+	border:1px solid #ddd;
 	width:300px;
 	height:auto;
 	padding:5px;
-	border-radius: 0 10px 10px 10px;
+	border-radius: 10px;
 }
 .candidateDescription {
 	width:auto;
@@ -196,37 +193,49 @@
 	min-width:20px;
 }
 
-.wg_op_container {
+.wg_popup {
 	display:block !important;
 	position:absolute;
 	z-index:500000;
 	top:0px;
 	left:0px;
-	margin-top:-300px;
+	margin-top:-238px;
+	margin-left:-10px;
+	border-radius:10px 10px 10px 0;
 	background-color:#FBEED5;
 	border:1px solid #666;
 	width:300px;
-	height:auto;
+	height:230px;
 	padding:5px;
-	border-radius: 0 10px 10px 10px;
+	-webkit-box-shadow: 3px -3px 1px 1px rgba(0,0,0,0.2);
+    -moz-box-shadow: 3px -3px 1px 1px rgba(0,0,0,0.2);
+    box-shadow: 3px -3px 1px 1px rgba(0,0,0,0.2);
 }
-.wg_op_detail_info {
-	width:100%; 
-	min-height:200px;
+
+
+.wg_popup_detail_info {
+	width:auto; 
+	height:180px;
+	overflow-y:scroll;
 	background-color:white;
 	font-size:12px;
+	padding:10px;
+	margin-bottom:5px;
+	
 }
-.wg_op_detail_tools {
+.wg_popup_detail_tools {
 	width:100%;
 	height:30px;
 }
-.wg_op_title {
-	font-size:10px; 
+.wg_popup_title {
+	font-size:20px; 
 	font-weight:bold;
+	margin-bottom:10px;
 }
-.wg_op_italic {
-	font-size:15px;
+.wg_popup_italic {
+	font-size:20px;
 	font-style:italic;
+	margin-bottom:10px;
 }
 
 

@@ -1,9 +1,8 @@
 /*
  * wg.widget
- * 
+ *
  * worksheet data table UI and event handling
  */
-
 wg.widget = {
 	container: null,
 	content: null,
@@ -12,12 +11,11 @@ wg.widget = {
 	previousCellValue: null,
 	btn_inspect: null,
 	cellSelectionBox: null,			// highlight box for highlighting DOM of the cell content
-	candidateBox:null,				// floating UI box for showing candidate operations for one column 
+	candidateBox:null,				// floating UI box for showing candidate operations for one column
 	focus: {s:null,c:null,r:null},	// focused cell's sheet, column, row id
-	
 	// Initialize widget UI
 	init: function(sheets) {
-		if(!sheets) {   sheets = [new wg.Sheet()];   sheets[0].init();  } 
+		if(!sheets) {   sheets = [new wg.Sheet()];   sheets[0].init();  }
 		if(this.container) $(this.container).remove();
 		this.container= $("<div class='wikigram_container'></div>").appendTo("body");
 		this.content = $("<div id='wikigram_content'></div></div>").appendTo(this.container);
@@ -30,6 +28,10 @@ wg.widget = {
 		this.palette = $("<div id='wikigram_palette'></div>").appendTo(this.content);
 		this.updatePalette(sheets);
 		this.attachEventHandlers();
+	},
+	// update the presentation using current program
+	redraw: function() {
+		this.updatePalette(wg.program.sheets);
 	},
 	// delete existing sheets and create new palettes.
 	updatePalette: function(sheets) {
@@ -48,8 +50,10 @@ wg.widget = {
 	// return DIV of a sheet element (looks like a single track of garageband)
 	createSheet: function(sheet) {
 		var sheetElement = $("<div class='wg_sheet'></div>");
+		var sheetHeader = $("<div class='wg_sheet_header'></div>").appendTo(sheetElement);
+		var columnContainer = $("<div class='wg_sheet_columns'></div>").appendTo(sheetElement);
 		_.each(sheet.columns, function(column,ci) {
-			$(sheetElement).append(this.createColumn(column));	
+			$(columnContainer).append(this.createColumn(column));
 		},this);
 		return sheetElement;
 	},
@@ -73,23 +77,22 @@ wg.widget = {
 		if(_.isObject(directionOrPosition)) {
 			newFocus = directionOrPosition;
 		} else {
-			if(directionOrPosition=='up')  newFocus = {s:this.focus.s, c:this.focus.c, r:this.focus.r-1};
-			if(directionOrPosition=='down')  newFocus = {s:this.focus.s, c:this.focus.c, r:this.focus.r+1};
+			if(directionOrPosition=='up')	newFocus = {s:this.focus.s, c:this.focus.c, r:this.focus.r-1};
+			if(directionOrPosition=='down')	newFocus = {s:this.focus.s, c:this.focus.c, r:this.focus.r+1};
 			if(directionOrPosition=='right')  newFocus = {s:this.focus.s, c:this.focus.c+1, r:this.focus.r};
 			if(directionOrPosition=='left')  newFocus = {s:this.focus.s, c:this.focus.c-1, r:this.focus.r};
 			// force new focus within the boundary
-			var focusedSheet = wg.program.sheets[this.focus.s]; 
+			var focusedSheet = wg.program.sheets[this.focus.s];
 			newFocus.c = Math.max(0,newFocus.c);
 			newFocus.c = Math.min(focusedSheet.columns.length-1,newFocus.c);
 			newFocus.r = Math.max(0,newFocus.r);
 			newFocus.r = Math.min(focusedSheet.columns[this.focus.c].row.length-1,newFocus.r);
 		}
 		// actual operation of setting focus
-		this.focus = newFocus;	 // update the position of currently focused cell
+		this.focus = newFocus;  // update the position of currently focused cell
 		$(this.getCell(newFocus).el).attr('focused','true');  // show red highlight
 		$(this.getCell(newFocus).el).focus();
 		wg.widget.previousCellValue = $(this).text();
-	
 	},
 	getCellPosition: function(el) {
 		var s = $(el).parents(".wg_sheet").myIndex(".wg_sheet");
@@ -99,9 +102,8 @@ wg.widget = {
 	},
 	// cell methods
 	getCell: function(pos) {
-		return {data: wg.program.getVariable(pos), 
+		return {data: wg.program.getVariable(pos),
 			el: this.getCellDiv(pos)};
-		
 	},
 	getCellDiv: function(pos) {
 		return this.getColumnDiv(pos).find(".wg_cell[row_id="+pos.r+"]")[0];
@@ -114,8 +116,7 @@ wg.widget = {
 	},
 	unselectAll: function() {
 		$(".wg_cell").removeAttr('focused');
-	},	
-	
+	},
 	/*
 	 *  when user clicks a DOM element, it stores the element in the currently focused cell
 	 */
@@ -126,53 +127,44 @@ wg.widget = {
 		this.focusMove("down");
 	},
 	/*
-	 * 	shows a pop-up of a single column's operation detail.  
-	 */
+	*shows a pop-up of a single column's operation detail.
+	*/
 	showOperationDetail: function(opEl) {
 		var pos = wg.widget.getCellPosition(opEl);
 		// get operation data from wg.prgram using pos
 		var op = wg.program.getColumn(pos).operation;
-		// create operation detail balloon 
-		var opContainer = $("<div class='wg_op_container'></div>");
+		// create operation detail balloon
+		var opContainer = $("<div class='wg_op_container wg_popup'></div>").attr('colID',pos.c).attr('sheetID',pos.s);
 		// Info area
-		var opInfo = $("<div class='wg_op_detail_info'></div>").appendTo(opContainer);
+		var opInfo = $("<div class='wg_popup_detail_info'></div>").appendTo(opContainer);
 			$("<div class='wg_op_label'>OPERATION</div>").appendTo(opInfo);
-		var opInfo_title = $("<div class='wg_op_title'></div>").text(op.description).appendTo(opInfo);
+		var opInfo_title = $("<div class='wg_popup_title'></div>").text(op.description).appendTo(opInfo);
 			$("<div class='wg_op_label'>INPUT SOURCE</div>").appendTo(opInfo);
-		var opInfo_input = $("<div class='wg_op_input wg_op_italic' contenteditable='true'>previous column</div>").appendTo(opInfo);
+		var opInfo_input = $("<div class='wg_op_input wg_popup_italic' contenteditable='true'>previous column</div>").appendTo(opInfo);
 			$("<div class='wg_op_label'>ARGUMENT</div>").appendTo(opInfo);
-		var opInfo_arg = $("<div class='wg_op_arg wg_op_italic' contenteditable='true'>...</div>").appendTo(opInfo);
+		var opInfo_arg = $("<div class='wg_op_arg wg_popup_italic' contenteditable='true'>...</div>").appendTo(opInfo);
 		// Tools and buttons
-		var opTools = $("<div class='wg_op_detail_tools'></div>").appendTo(opContainer);
-		var button_copy = $("<button class='btn btn_small' disabled>COPY</div>");
-		var button_paste = $("<button class='btn btn_small' disabled>PASTE</div>");
-		var button_infer = $("<button class='btn btn_small'>INFER OPERATION</div>");
-		
-		// now attach to the column 
-		$(opContainer).offset({left:0, top:250});
-		$(wg.widget.palette).append(opContainer);
-		
+		var opTools = $("<div class='wg_popup_detail_tools'></div>").appendTo(opContainer);
+		var button_infer = $("<button class='btn btn_small btn_infer'>infer</div>");
+		var button_copy = $("<button class='btn btn_small btn_copy' disabled>copy</div>");
+		var button_paste = $("<button class='btn btn_small btn_paste' disabled>paste</div>");
+		opTools.append(button_infer).append(button_copy).append(button_paste);
+		// now attach to the column
+		$(opContainer).offset({top:0, left:$(opEl).parent().offset().left});
+		$(wg.widget.palette).prepend(opContainer);
 	},
 	/*
-	 * called after one column's candidates have been changed .  
+	 * UI for selecting among candidate operations  
+	 *   called after one column's candidates have been changed .
 	 */
-	showCandidates: function(pos) {
-		var candDiv = wg.widget.getColumnDiv(pos).find(".candidates");
-		var candidates = wg.program.getColumn(pos).candidateOperations;
-		$(candDiv).text(candidates.length+" found");
-		$(candDiv).click(function(){
-			// create and attach a pop-up that shows UI for choosing one among candidates
-			if(!wg.widget.candidateBox) {  
-				wg.widget.candidateBox= new wg.Candidate();
-				var cB = wg.widget.candidateBox;
-				cB.init(candidates,candDiv,wg.widget.getColumnDiv(pos));	// initialize the candidate UI using data an column elements    
-			} else { 
-				wg.widget.candidateBox=null;
-				$(".candidateBox").hide('fast'),remove();
-			}
-		});
+	showCandidates: function(pos,candidates) {
+		var columnDiv = wg.widget.getColumnDiv(pos);
+		// popup is a container for candidate selection UI
+		var candidateWidget = new wg.Candidates().init(candidates,pos);
+		$(candidateWidget).offset({top:0, left:$(columnDiv).offset().left});
+		$(wg.widget.palette).prepend(candidateWidget);
 	},
-	attachEventHandlers: function() {	
+	attachEventHandlers: function() {
 		// mouse events to cells
 		$("#wikigram_palette").on('mousedown','.wg_cell',function() {
 			wg.widget.focusMove(wg.widget.getCellPosition(this));
@@ -194,16 +186,14 @@ wg.widget = {
 			wg.program.setArgument(wg.widget.getCellPosition(this),newValue);
 			$(this).text(var2txt(newValue));
 		});
-		
-		// showing seletionbox around the DOM of the cell content 
+		// showing seletionbox around the DOM of the cell content
 		$("#wikigram_palette").on('mouseover','.wg_cell',function() {
 			if(!wg.widget.cellSelectionBox) wg.widget.cellSelectionBox = new wg.SelectionBox(2,"red");
 			var pos = wg.widget.getCellPosition(this);
 			var v = wg.widget.getCell(pos).data;
-			if(v && v.nodeType!=null) {
-				wg.widget.cellSelectionBox.highlight(v);	
+			if(v && v.nodeType!==null) {
+				wg.widget.cellSelectionBox.highlight(v);
 			}
-			
 		});
 		$("#wikigram_palette").on('mouseout','.wg_cell',function() {
 			wg.widget.cellSelectionBox.hide();
@@ -218,34 +208,35 @@ wg.widget = {
 				wg.widget.focusMove('right');
 			}  else if(e.keyCode == 40) { //down
 				wg.widget.focusMove('down');
-			} 
+			}
 		});
 		// each column has infer button
 		$("#wikigram_palette").on('click','.btn_infer',function() {
-			var si = $(this).parents(".wg_sheet").myIndex();
-			var ci = $(this).parents(".wg_column").myIndex();
-			wg.program.sheets[si].columns[ci].infer();
+			var pos = {	s:$(this).parents(".wg_op_container").attr('sheetID'),
+						c:$(this).parents(".wg_op_container").attr('colID')};
+			var argument = txt2var($(this).parents(".wg_op_container").find(".wg_op_arg").text());
+			var candidates = wg.program.getColumn(pos).infer(null,null,argument);
+			$("#wikigram_palette").find(".wg_op_container").remove();
+			wg.widget.showCandidates(pos,candidates);
 		});
 		// operation row of each column
 		$("#wikigram_palette").on('click','.wg_cell_op',function() {
-			// if it's already showing operation detail, remove it.  
+			// if it's already showing operation detail, remove it.
 			if($("#wikigram_palette").find(".wg_op_container").length>0) {
-				$("#wikigram_palette").find(".wg_op_container").remove();
-				$(".wg_sheet").removeClass("noScroll");
+				var existingOpColID = $($("#wikigram_palette").find(".wg_op_container")[0]).attr("colID");
+				if(existingOpColID==wg.widget.getCellPosition(this).c) {
+					$("#wikigram_palette").find(".wg_op_container").remove();
+					$(".wg_sheet").removeClass("noScroll");
+				} else {
+					$("#wikigram_palette").find(".wg_op_container").remove();
+					wg.widget.showOperationDetail(this);
+				}
 			}
-			// otherwise create a new one. 
+			// otherwise create a new one.
 			else {
 				wg.widget.showOperationDetail(this);
 				$(".wg_sheet").addClass("noScroll");
 			}
 		});
-		
 	}
-	
-	
-	
-	
-	
-	
-	
 }

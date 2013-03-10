@@ -1,10 +1,9 @@
 /**
  * wg
  * top-level object of Wikigram extension
- * 
+ *
  * Copyright (c) 2013 Tak Yeon Lee
  */
-
 var wg = {
 	status: false,
 	selectedElement: null,
@@ -13,9 +12,6 @@ var wg = {
 	selectionBox: null,
 	generator:null,
 	program: null,
-	
-	
-	
 	/*
 	 *  Initialize wikigram worksheet
 	 */
@@ -32,7 +28,7 @@ var wg = {
 		this.generator = new wg.Generator();
 		// initialize widget UI
 		console.log("widget initiated");
-		this.widget.init(this.program.sheets); 
+		this.widget.init(this.program.sheets);
 	},
 	/*
 	 *  Reset
@@ -42,14 +38,13 @@ var wg = {
 	},
 	/**
 	 * Open / close wg
-	 */ 
+	 */
 	toggle: function() {
 		if (this.status === true)
 			this.close();
 		else
 			this.open();
 	},
-	
 	open: function() {
 		this.status = true;
 		this.widget.open();
@@ -63,9 +58,4 @@ var wg = {
 	toString: function() {
 		return this.program.toString();
 	}
-	
-	
-	
-	
-	
 };
