@@ -33,6 +33,7 @@ wg.Sheet = function() {
 			this.columns.push(nv);
 		}
 	};
+	
 	/*
 	 *  Each operation is assigned to a new column which will be inserted into the column list.
 	 */
