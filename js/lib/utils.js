@@ -12,6 +12,12 @@ jQuery.fn.justtext = function() {
             .end()
             .text();
 };
+jQuery.fn.containsString = function(str) {
+	if($(this).text.indexOf(str)!=-1) return true;
+	if($(this).attr('href') && $(this).attr('href').indexOf(str)!=-1) return true;
+	if($(this).attr('src') && $(this).attr('src').indexOf(str)!=-1) return true;
+	return false;
+};
 jQuery.fn.containsAll = function(inner) {
 	var flag = true;
 	_.each(inner, function(el) {

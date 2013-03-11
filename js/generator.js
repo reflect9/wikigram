@@ -54,60 +54,27 @@ wg.Generator = function() {
 		if(pathFromRepToLeaf[0]!=="") proc.push({type:"Select",query:{type:"PositionQuery",path:pathFromRepToLeaf[0]},description:"Select a set elements from DOM."});
 		console.log(proc);
 		return [proc];
-//	$.each(O, function(oi,o) {
-//		var D_leaf;	// array of all leaf nodes matching with o
-//		if(_.isString(o) || _.isNumber(o)) {	// it it looks for string or number variable
-//			D_leaf = $.makeArray($("*:contains('"+o+"')"));
-//			D_leaf = _.filter(D_leaf, function(d) {
-//				return ($(d).justtext().indexOf(o)!=-1);
-//			});
-//		} else if(o.nodeType) { // if the output looking for is DOM element
-//			D_leaf = [o];
-//		}
-//		$.each(D_leaf, function(dli,d_leaf) {
-//			var D_rep = $(d_leaf).add($.makeArray($(d_leaf).parents()));
-//			// for each d, create path for it and its siblings
-//			$.each(D_rep, function(di,d_rep) {
-//				// first, check whether D_rep has many siblings having similar fingerprint of their strucutre
-//				if(["HTML","BODY"].indexOf($(d_rep).prop("tagName"))!=-1) return;
-//				var q_rep, q_leaf, q_attr;
-//				var f_rep = $(d_rep).fingerprint();
-//				var d_sib = _.filter($(d_rep).parent().children(), function(child) {
-//					return $(child).fingerprint()==f_rep;
-//				},this);
-//				// check D_rep is i-th element among D_sib
-//				if($(d_sib).index(d_rep)==oi) {
-//					// q_rep is the path from I to d_sib
-//					q_rep = $(d_rep).pathWithClass();
-//					// q_leaf is the path from q_rep to d_leaf
-//					if($(d_leaf).fingerprint()==$(d_rep).fingerprint()) { // if d_rep is the leaf node,
-//						q_leaf = " ";
-//					} else {
-//						q_leaf = $(d_leaf).leafNodePath(d_rep);
-//					}
-//					// q_attr is the attribute key of d_leaf for getting o
-//					q_attr = "text";
-//					if(!(oi in Q)) Q[oi] = [];
-//					Q[oi].push({type:"PositionQuery", "q_rep":q_rep,"f_rep":f_rep,"q_leaf":q_leaf,"q_attr":q_attr,"num_siblings":d_sib.length});
-//				}
-//			});	// each D_rep
-//		});	// each D_leaf
-//	}); // each O
-//	// Q[index of output][q1,q2,q3] -->  Q[q1 which appears in all the output]
-//	var qDict = {};
-//	_.each(Q, function(qList,i) {
-//		_.each(qList, function(q, j) {
-//			var qStr = JSON.stringify(q);
-//			if(!(qStr in qDict)) qDict[qStr]=0;
-//			qDict[qStr] = qDict[qStr]+1;
-//		},this);
-//	},this);
-//	var qList_valid = [];
-//	_.each(qDict, function(num,qStr) { if(num==O.length) qList_valid.push($.parseJSON(qStr)); }, this);
-//		return qList_valid;
 	};
-
-
+	// extract output variables from DOM elements.
+	GenerateAttribute = function(I,O) {
+		// 1:n _ provided output examples are from the first input element
+		// 1:1   each output examples are from the matching row of the input elements
+		var eachInputHasEachOutput = true;
+		var validAttributes = [];
+		var candidateAttributes = [
+			{type:"text", expr:function(el) { return $(el).text(); }},
+			{type:"href", expr:function(el) { return $(el).attr('href'); }},
+			{type:"src", expr:function(el) { return $(el).attr('src'); }}
+		];
+		_.each(candidateAttributes, function(cand,candIndex) {
+			var extracted = _.map(I, cand.expr);
+			_.each(O, function(o,oi) {
+				if(extracted[oi].indexOf(o)==-1) eachInputHasEachOutput=false;
+			});
+			if(eachInputHasEachOutput) validAttributes.push(cand);
+		});
+		return validAttributes;
+	};
 	GenerateTransform= function(Vin,Vout,Vargs) {
 		var T = [];  // candidate transformations
 		if(Vin.length==Vout.length) {
