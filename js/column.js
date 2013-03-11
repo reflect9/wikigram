@@ -40,10 +40,14 @@ wg.Column = function() {
 		if(myIndex<this.sheet.columns.length-1) return this.sheet.columns[myIndex+1];
 	};
 	this.setOperation = function(op) {
-		this.operation = op;
+		this.operation = new wg.Operation().init(op);
 	};
 	this.run = function() {
-		this.row = this.operation.run(this.sourceColumn.row);
+		// apply the operation to get the result
+		var I = (this.sourceColumn)? this.sourceColumn.row : this.prev().row;
+		var result = this.operation.run(getContentAtTop(I), getContentAtTop(this.args));
+		// extend the result to have at least 50 rows
+		this.row = mergeList(result, _.map(_.range(50), function() { return null; }));
 	};
 	this.push = function(v) {
 		this.row.push(v);

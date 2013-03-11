@@ -33,32 +33,35 @@ wg.Sheet = function() {
 			this.columns.push(nv);
 		}
 	};
-	
 	/*
 	 *  Each operation is assigned to a new column which will be inserted into the column list.
 	 */
 	this.insertColumnsFromOperations = function(colIndexToInsertAt,opList) {
 		console.log("insertColumns from candidate operations");
+		this.restoreSnapshot();
+		this.columns.splice(colIndexToInsertAt,1); // first, delete the output column
+		//this.columns[colIndexToInsertAt].creatorSignature = "output";
+		//this.columns[colIndexToInsertAt].sourceColumn = null;
 		// insert new columns
-		this.deleteColumnsByCandidate();
-		_.each(opList.reverse(), function(op) {
-			console.log(op);
+		var newColumns = _.map(opList, function(op) {
 			var newColumn = new wg.Column().init();
-			newColumn.setOperation(op);
-			this.insertColumnAt(colIndexToInsertAt, newColumn, "candidate");
+			newColumn.setOperation(op); newColumn.sheet=this;
+			newColumn.creatorSignature = "candidate";
+			return newColumn;
 		},this);
-	};
-	this.deleteColumnsByCreator = function(creatorSign) {
-		return _.filter(this.columns, function(column) {
-			return (column.creator!==creatorSign);
+		insertArrayAt(this.columns,colIndexToInsertAt,newColumns);
+		var candidateColumns = _.filter(this.columns, function(col){  return (col.creatorSignature=="candidate" || col.creatorSignature=="output"); });
+		_.each(candidateColumns, function(col) {
+			col.run();
 		});
-	};
-	this.deleteColumnsByCandidate = function() {
-		this.deleteColumnsByCreator("candidate");
 	};
 	// for situations when it needs to revert the change of columns
 	this.createSnapshot = function() {
-		this.backupColumns = _.clone(this.columns);
+		this.backupColumns = _.toArray(jQuery.extend(true, {}, this.columns));
+	};
+	// for situations when it needs to revert the change of columns
+	this.restoreSnapshot = function() {
+		this.columns = _.toArray(jQuery.extend(true, {}, this.backupColumns));
 	};
 	/*
 	 *	Called when a new column is inserted inbetween.
@@ -67,7 +70,7 @@ wg.Sheet = function() {
 	 */
 	this.insertColumnAt = function(colIndexToInsertAt, column, creatorSignature) {
 		if(!column) column = wg.Column().init();
-		if(!creatorSignature) column.creatorSignature= creatorSignature;
+		if(creatorSignature) column.creatorSignature= creatorSignature;
 		if(!colIndexToInsertAt || colIndexToInsertAt<0) colIndexToInsertAt = 0;
 		this.columns.splice(colIndexToInsertAt,0,column);
 	};

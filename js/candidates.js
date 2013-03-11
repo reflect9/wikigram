@@ -21,7 +21,7 @@ wg.Candidates = function() {
 		this.candidateButtons = _.map(this.candidates, function(cand,candIndex) {
 			var btn = $("<span class='candidateBtn badge' candID='"+candIndex+"'></span>")
 					.text(candIndex).appendTo(this.candidateHolder);
-			$(btn).click($.proxy(this.clickEvent,this));
+			$(btn).click($.proxy(this.clickEvent,{pos:this.pos, candidates:this.candidates,candID:candIndex}));
 			return btn;
 		},this);
 		// Tools and buttons
@@ -35,12 +35,12 @@ wg.Candidates = function() {
 	};
 	// candidate button click event
 	this.clickEvent = function() {
-		wg.program.sheets[this.pos.s].insertColumnsFromOperations(this.pos.c,this.candidates);
+		wg.program.sheets[this.pos.s].insertColumnsFromOperations(this.pos.c,this.candidates[this.candID]);
 		wg.widget.redraw();
 	};
 	this.cancelEvent = function() {
-		// delete all columns that have 'candidate' as creatorSignature
-		wg.program.sheets[this.pos.s].deleteColumnsByCandidate();
+		// restore the previous column state
+		wg.program.sheets[this.pos.s].restoreSnapshot();
 		wg.widget.redraw();
 		// redraw sheet
 		this.close();
@@ -50,6 +50,7 @@ wg.Candidates = function() {
 		_.each(wg.program.sheets[this.pos.s].columns, function(col) {
 			col.creatorSignature=null;
 		});
+		wg.program.sheets.backupColumns = null;
 		this.close();
 	};
 	// closing the wg_popup div

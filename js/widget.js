@@ -27,6 +27,7 @@ wg.widget = {
 		// create data table
 		this.palette = $("<div id='wikigram_palette'></div>").appendTo(this.content);
 		this.updatePalette(sheets);
+		if(wg.inspector.flag_inspect) wg.inspector.off();
 		this.attachEventHandlers();
 	},
 	// update the presentation using current program
@@ -60,7 +61,7 @@ wg.widget = {
 	// return DIV of the column representing the column
 	createColumn: function(column) {
 		var col = $("<div class='wg_column'></div>");
-		var op_row = $("<div class='wg_cell wg_cell_op' row_id='op'></div>").appendTo(col);
+		var op_row = $("<div class='wg_cell wg_cell_op' row_id='op'>"+column.operation.title+"</div>").appendTo(col);
 		//$(op_row).find(".but").click();
 		//var arg_row = $("<div class='wg_cell wg_cell_arg' row_id='arg' contenteditable='true'></div>").appendTo(col);
 		_.each(column.row, function(v, i) {
@@ -158,6 +159,7 @@ wg.widget = {
 	 *   called after one column's candidates have been changed .
 	 */
 	showCandidates: function(pos,candidates) {
+		wg.program.sheets[pos.s].createSnapshot();  // save current columns 
 		var columnDiv = wg.widget.getColumnDiv(pos);
 		// popup is a container for candidate selection UI
 		var candidateWidget = new wg.Candidates().init(candidates,pos);
