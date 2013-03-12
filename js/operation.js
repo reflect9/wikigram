@@ -3,18 +3,12 @@
  *   it accepts an input vector and returns output. 
  */
 
-wg.Operation = function() {
-	this.title = "empty";
-	this.procedure = null;
-	this.init = function(op) {
-		if(op) {
-			this.procedure = op;
-			this.title = op.type;
-		}
-		return this;
-	};
+wg.Operation = function(type, desc, expr) {
+	this.type = (type)? type: "empty";
+	this.description = (desc)? desc: "empty";
+	this.expr = (expr)? expr: null;
 	this.run = function(I, A) {
-		return wg.runner.run(I,this.procedure,A);
+		return wg.runner.run(I,this,A);
 	};
 };
 /*
@@ -24,38 +18,38 @@ wg.runner = {
 	/*
 	 *	top-level function  
 	 */
-	run: function(I,procedure) {
-		if(procedure.type=='Select') {
-			return this.select(I,procedure.query);
-		} else if(procedure.type=='Transform') {
-			return this.transform(I,procedure.expression);
-		} else if(procedure.type=='Create') {
-			//return this.create(I,op.operation);
+	run: function(I,op) {
+		if(op.type=='Select') {
+			return this.select(I,op.expr);
+		} else if(op.type=='Transform') {
+			return this.transform(I,op.expr);
+		} else if(op.type=='Create') {
+			return this.create(I,op.expr);
 		}
 	},
-	select: function(I,query) {
-		if(query.type=="PositionQuery") {
+	select: function(I,ex) {
+		if(ex.type=="PositionQuery") {
 			// for each input that is DOM element, it runs the position query
 			var siblings = _.map(_.filter(I,isDom),function(i) {
-				if (query.path==="") return $(i);
-				else return $.makeArray($(i).find(query.path));
+				if (ex.path==="") return $(i);
+				else return $.makeArray($(i).find(ex.path));
 			});
 			return _.flatten(siblings,true);  // flatten a single level
-		} else if(query.type=="Attribute") {
-			return _.map(I, function(el) { return el.attr(query.key); });
+		} else if(ex.type=="Attribute") {
+			return _.map(I, ex.expr.func);
 		} else{
 			return [];
 		}
 	},
-	transform: function(I, expr) {
-		if(expr.type=="Filter") {
-			return _.filter(I,expr.pred);
-		} else if(expr.type=="Aggregate") {
-			return [_.reduce(I,expr.expr,expr.init)];
-		} else if(expr.type=="Map") {
-			return this.map(I,expr);  // run operation (match,replace,replaceWithin) with regex
-		} else if(expr.type=="Sort") {
-			return (expr.direction=="asc")? I.sort() : I.sort().reverse();
+	transform: function(I, ex) {
+		if(ex.type=="Filter") {
+			return _.filter(I,ex.expr);
+		} else if(ex.type=="Aggregate") {
+			return [_.reduce(I,ex.expr,ex.init)];
+		} else if(ex.type=="Map") {
+			return this.map(I,ex);  // run operation (match,replace,replaceWithin) with regex
+		} else if(ex.type=="Sort") {
+			return ex.expr(I);
 		}
 	},
 	map: function(I, expr) {

@@ -18,10 +18,10 @@ jQuery.fn.containsString = function(str) {
 	if($(this).attr('src') && $(this).attr('src').indexOf(str)!=-1) return true;
 	return false;
 };
-jQuery.fn.containsAll = function(inner) {
+var containsAll = function(outer,inner) {
 	var flag = true;
 	_.each(inner, function(el) {
-		if($(this).contains(el)===false) flag = false;
+		if($.contains(outer,el)===false) flag = false;
 	});
 	return flag;
 };
@@ -94,7 +94,7 @@ jQuery.fn.trimArray = function() {
 var getContentAtTop = function(list) {
 	var result = [];
 	for(var i=0;i<list.length;i++) {
-		if(list!==null) result.push(list[i]);
+		if(list[i]!==null && list[i]!==undefined ) result.push(list[i]);
 		else break;
 	}
 	return result;
@@ -138,19 +138,37 @@ var insertArrayAt = function(array, index, arrayToInsert) {
 var mergeList = function(list1, list2) {
 	var merged = [];
 	for(var i=0;i<Math.max(list1.length,list2.length);i++) {
-		if(list1[i]!==null) merged.push(list1[i]);
+		if(list1[i]!==null && list1[i]!==undefined) merged.push(list1[i]);
 		else merged.push(list2[i]);
 	}
 	return merged;
 };
+var isCorrectResult = function(inputList, outputList) {
+	// checks each outputList is found in corresponding inputList
+	return _.filter(_.zip(inputList,outputList), function(e) { return e[1] && e[0].indexOf(e[1])==-1; }).length===0;
+};
+var isURL = function(list) {
+	var toCheck = (_.isArray(list))? list: [list];
+	toCheck = $(toCheck).trimArray();
+	return _.filter(toCheck, function(e) {
+		return _.isString(e)===false || e.indexOf("http")!==0;
+	}).length===0;
+};
+var isSrc = function(list) {
+	var toCheck = (_.isArray(list))? list: [list];
+	toCheck = $(toCheck).trimArray();
+	return _.filter(toCheck, function(e) {
+		return _.isString(e)===false || e.indexOf("http")!==0;
+	}).length===0;
+};
 var isDomList = function(list) {
-	return (list[0].nodeType!==null);
+	return (list[0].nodeType!==null && list[0].nodeType!==undefined);
 };
 var isDom = function(el) {
-	return el && el.nodeType!==null;
+	return (el && el.nodeType!==null && el.nodeType!==undefined);
 };
 var isValueList = function(list) {
-	return (list[0].nodeType===null);
+	return (list[0].nodeType===undefined || list[0].nodeType===null);
 };
 var isSameArray = function(a1, a2, option) {
 	var aa1=a1; var aa2=a2;
@@ -177,7 +195,7 @@ var remove = function(list, removeItem) {
 	});
 };
 var obj2text = function(obj) {
-	if(obj.nodeType!==null) {
+	if(obj.nodeType!==null && obj.nodeType!==undefined) {
 		// DOM
 		return "[D:"+$(obj).prop('tagName')+"]"+$(obj).text();
 	} else {

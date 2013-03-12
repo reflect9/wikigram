@@ -22,14 +22,14 @@ wg.Column = function() {
 		var input = (i)? i:$(this.prev().row).trimArray();
 		var output = $(this.row).trimArray();
 		var argument = (o)? o:this.args;
-		var inferredPrograms = wg.generator.GenerateProcedure(input,output,argument);
-		this.candidateOperations = inferredPrograms;
+		var inferredProcedures = wg.generator.GenerateProcedure(input,output,argument);
+		this.candidateOperations = inferredProcedures;
 		// inferredPrograms have 'type' and 'program'(array)
 		// tell widget to show this column's candidates
 		//var pos = {s:wg.program.sheets.indexOf(this.sheet),  c:this.sheet.columns.indexOf(this), r:null};
 		//wg.widget.showCandidates(pos);
-		console.log(inferredPrograms);
-		return inferredPrograms;
+		console.log(inferredProcedures);
+		return inferredProcedures;
 	};
 	this.prev = function() {
 		var myIndex = this.sheet.columns.indexOf(this);
@@ -40,7 +40,7 @@ wg.Column = function() {
 		if(myIndex<this.sheet.columns.length-1) return this.sheet.columns[myIndex+1];
 	};
 	this.setOperation = function(op) {
-		this.operation = new wg.Operation().init(op);
+		this.operation = new wg.Operation(op.type,op.description,op.expr);
 	};
 	this.run = function() {
 		// apply the operation to get the result

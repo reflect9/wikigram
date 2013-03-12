@@ -1,27 +1,45 @@
 /*   GENEARTOR
- * 		GenerateProcedure:
-	 * 		I: input variable. array of values or HTMLelements
-	 * 		O: output variable. array of values or HTMLelements
-	 * 		C: clues. array of values
-	 * 		Returns a list of programs that can create O from I
+ *		GenerateProcedure:
+	 *		I: input variable. array of values or HTMLelements
+	 *		O: output variable. array of values or HTMLelements
+	 *		C: clues. array of values
+	 *		Returns a list of programs that can create O from I
  */
 wg.Generator = function() {
 	this.GenerateProcedureWithUnknownInput = function(candidateI,O,C) {
 		// this will run GenerateProcedure for each candidateI and return all
 		// having valid result
 	};
-	// (TBD) GenerateMultiStepProcedure
 	this.GenerateProcedure = function(I,O,A) {
-		var P;	// candidate programs, where a program is sequential sub-procedure
+		if(O===null || O.length===0) {
+			return GenerateProcedureWithoutOutput(I,A);
+		} else {
+			return GenerateProcedureWithOutput(I,O,A);
+		}
+	};
+	GenerateProcedureWithoutOutput = function(I,A) {
+		var P=[]; // candidate programs
+		if(isDomList(I)) {
+			// DOM -> select/attribute(text|href|src), attach
+			P.push(GenerateAttribute(I,[],A));
+		} else {
+			// variables/string(URL form) -> create
+			P.push(GenerateCreate(I,[],A));
+		}
+		return _.flatten(P);
+	};
+	// (TBD) GenerateMultiStepProcedure
+	GenerateProcedureWithOutput = function(I,O,A) {
+		var Ps;	// candidate programs, where a program is sequential sub-procedure
 		if(isDomList(I)) {  // if I a DOM list
 			return GenerateSelect(I,O);
 		} else { // I is a variableList
 			if(isDomList(O)){
 				// only OUTPUT is nodeType
-				P=[{type:'Create', operation: GenerateCreate(I,O), description:"Create a new DOM element."}];
-			} else P=[{type:'Transform', operation: GenerateTransform(I,O,A),description:"Transform input to output."}];
+				return GenerateCreate(I,O,A);
+			} else Ps= new wg.Procedure([new wg.Operation('Transform',"Transform input to output.",GenerateTransform(I,O,A))]);
 		}
-		return P;
+		return Ps;
 	};
 	/*
 	 *  GenerateSelect : finding output DOM within input DOM
@@ -29,15 +47,16 @@ wg.Generator = function() {
 	 *    O: Output DOM that we are looking for.
 	 */
 	GenerateSelect= function(I,O) {
-		var Q={}; // key: output index,  value: query object
+		var P = [];
 		if(isDomList(O)) {
 			// both I and O are Dom and I contains O
-			if($(I[0]).containsAll(O)) return GeneratePositionQuery(I[0],O);
-			else return GeneratePositionQuery(I,O);
+			if(containsAll(I[0],O)) P.push(GeneratePositionQuery(I[0],O));
+			else P.push(GeneratePositionQuery(I,O));
 		} else {
 			// if output is a variable list
-			return GenerateAttribute(I,O);
+			P.push(GenerateAttribute(I,O));
 		}
+		return P;
 	};
 	// finding position query: extracting a list of output Dom from a single input Dom
 	GeneratePositionQuery = function(I,O) {
@@ -50,49 +69,52 @@ wg.Generator = function() {
 		if(pathFromRepToLeaf.length>1) return [];
 		// now creates two step selection queries
 		var proc = [];
-		if(pathToAncester!=="") proc.push({type:"Select",query:{type:"PositionQuery",path:pathToAncester},description:"Select a set elements from DOM."});
-		if(pathFromRepToLeaf[0]!=="") proc.push({type:"Select",query:{type:"PositionQuery",path:pathFromRepToLeaf[0]},description:"Select a set elements from DOM."});
+		if(pathToAncester!=="") proc.push(new wg.Operation("Select","Select DOM element",{type:"PositionQuery",path:pathToAncester}));
+		if(pathFromRepToLeaf[0]!=="") proc.push(new wg.Operation("Select","Select DOM element",{type:"PositionQuery",path:pathFromRepToLeaf[0]}));
 		console.log(proc);
-		return [proc];
+		return new wg.Procedure(proc);
 	};
 	// extract output variables from DOM elements.
-	GenerateAttribute = function(I,O) {
+	GenerateAttribute = function(I,O,A) {
 		// 1:n _ provided output examples are from the first input element
 		// 1:1   each output examples are from the matching row of the input elements
-		var eachInputHasEachOutput = true;
 		var validAttributes = [];
 		var candidateAttributes = [
-			{type:"text", expr:function(el) { return $(el).text(); }},
-			{type:"href", expr:function(el) { return $(el).attr('href'); }},
-			{type:"src", expr:function(el) { return $(el).attr('src'); }}
+			{type:"text", func:function(el) { return $(el).text(); }, constraint: function(I,O,A){return true;}},
+			{type:"href", func:function(el) { return $(el).attr('href'); }, constraint: function(I,O,A){return true;}},
+			{type:"src", func:function(el) { return $(el).attr('src');}, constraint: function(I,O,A){return true;}}
 		];
 		_.each(candidateAttributes, function(cand,candIndex) {
-			var extracted = _.map(I, cand.expr);
-			_.each(O, function(o,oi) {
-				if(extracted[oi].indexOf(o)==-1) eachInputHasEachOutput=false;
-			});
-			if(eachInputHasEachOutput) validAttributes.push(cand);
+			if(O) {
+				var extracted = _.map(I, cand.func);
+				if(isCorrectResult(I,extracted)) validAttributes.push(cand);
+			} else {
+				if(cand.constraint(I,O,C)) validAttributes.push(cand);
+			}
 		});
-		return validAttributes;
+		var procedures = _.map(validAttributes, function(attr) {
+			return new wg.Procedure(new wg.Operation("Select", "Extract "+attr.type+" attribute", {type:"Attribute",expr:attr}));
+		});
+		return procedures;
 	};
 	GenerateTransform= function(Vin,Vout,Vargs) {
-		var T = [];  // candidate transformations
+		var validExpr = [];  // candidate transformations
 		if(Vin.length==Vout.length) {
 			// if Vout can be a permutation of Vin, then generatePermutation
 			if(isPermutation(Vin,Vout)) {
-				T= _.union(T,GenerateSort(Vin,Vout,Vargs));
+				validExpr= _.union(validExpr,GenerateSort(Vin,Vout,Vargs));
 			}
 			// find map
-			T=_.union(T,GenerateMap(Vin,Vout,Vargs));
+			validExpr=_.union(validExpr,GenerateMap(Vin,Vout,Vargs));
 		} else if(Vin.length>Vout.length) {
 			// filter or aggregate
-			if(Vout.length==1) T.push(GenerateAggregate(Vin,Vout,Vargs));
-			T= _.union(T,GeneratePredicate(Vin,Vout,Vargs));
+			if(Vout.length==1) _.union(validExpr, GenerateAggregate(Vin,Vout,Vargs));
+			validExpr= _.union(validExpr,GenerateFilter(Vin,Vout,Vargs));
 		}
-		return T;
+		return validExpr;
 	};
 	GenerateFilter= function(Vin,Vout,Vargs) {
-		var validFilter=[];
+		var validExpr=[];
 		var candidatePredicates;
 		if(_.isString(Vin[0])){  // String case : check Vin contains or not contains the Varg
 			var Rargs = GenerateRegex(Vargs);
@@ -114,9 +136,9 @@ wg.Generator = function() {
 		// now try candidatePredicates and return all that output Vout.
 		_.each(candidatePredicates, function(pred) {
 				var filteredIn = _.filter(Vin, pred);
-				if (isSameArray(filteredIn,Vout)) validFilter.push({'type':"Filter",'pred':pred});
+				if (isSameArray(filteredIn,Vout)) validExpr.push({'type':"Filter",'expr':pred});
 			},this);
-		return validFilter;
+		return validExpr;
 	};
 	GenerateAggregate= function(Vin,Vout,Vargs) {
 		var validAggregate = [];
@@ -187,8 +209,8 @@ wg.Generator = function() {
 	};
 	GenerateSort= function(Vin,Vout,Vargs) {
 		var validSort = [];
-		if(isSameArray(Vin.sort(),Vout)) validSort.push({'type':'Sort','direction':'asc'});
-		if(isSameArray(Vin.sort().reverse(),Vout)) validSort.push({'type':'Sort','direction':'desc'});
+		if(isSameArray(Vin.sort(),Vout)) validSort.push({'type':'Sort','expr':function(l) {return l.sort();}  });
+		if(isSameArray(Vin.sort().reverse(),Vout)) validSort.push({'type':'Sort','expr':function(l) {return l.sort().reverse();}});
 		return validSort;
 	};
 	GenerateStringExpr= function(Vin,Vout,Vargs) {
@@ -226,11 +248,25 @@ wg.Generator = function() {
 				function(el) { return el ^ arg; }, function(el) { return el % arg; }
 			];
 		_.each(candidateOperators, function(oper) {	// try every candidate
-			if(isSameArray(_.map(Vin, oper),Vout)) validExpr.push({'type':'ArithExpr','oper':oper});
+			if(isSameArray(_.map(Vin, oper),Vout)) validExpr.push({'type':'ArithExpr','expr':oper});
 		},this);
 		return validExpr;
 	};
-	GenerateCreate= function(Vin,Vout) {
+	// from variables to DOM.  
+	GenerateCreate= function(Vin,Vout,Vargs) {
+		// for now we assume Vout is empty. It's hard to provide exact examples for creating DOM 
+		var P=[];
+		var candidateP = [
+			{type:"load", description:"Load a web page from URL", func:function(vIn) { return $(vIn).getURL;  }, constraint: function(i,o,a) { return isURL(i); }},
+			{type:"image",description:"Create an image tag from URL", func:function(vIn) { return $("<img></img>").attr('src',vIn); }, constraint: function(i,o,a) { return isSrc(i); }},
+			{type:"text",description:"Create a paragraph from text", func:function(vIn) { return $("<p></p>").text(vIn); }, constraint: function(i,o,a) { return true; }}
+		];
+		var validP = _.filter(candidateP, function(p) {
+			return p.constraint(Vin,Vout,Vargs);
+		});
+		return _.map(validP, function(p){
+			return new wg.Procedure(new wg.Operation('Create',p.description,p));
+		});
 	};
 	GenerateRegex= function(stringList) {
 		// for now, just treat everything as constant

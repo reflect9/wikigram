@@ -61,7 +61,7 @@ wg.widget = {
 	// return DIV of the column representing the column
 	createColumn: function(column) {
 		var col = $("<div class='wg_column'></div>");
-		var op_row = $("<div class='wg_cell wg_cell_op' row_id='op'>"+column.operation.title+"</div>").appendTo(col);
+		var op_row = $("<div class='wg_cell wg_cell_op' row_id='op'>"+column.operation.description+"</div>").appendTo(col);
 		//$(op_row).find(".but").click();
 		//var arg_row = $("<div class='wg_cell wg_cell_arg' row_id='arg' contenteditable='true'></div>").appendTo(col);
 		_.each(column.row, function(v, i) {
@@ -139,9 +139,9 @@ wg.widget = {
 		// Info area
 		var opInfo = $("<div class='wg_popup_detail_info'></div>").appendTo(opContainer);
 			$("<div class='wg_op_label'>OPERATION</div>").appendTo(opInfo);
-		var opInfo_title = $("<div class='wg_popup_title'></div>").text(op.description).appendTo(opInfo);
+		var opInfo_title = $("<div class='wg_popup_italic'></div>").text(JSON.stringify(op)).appendTo(opInfo);
 			$("<div class='wg_op_label'>INPUT SOURCE</div>").appendTo(opInfo);
-		var opInfo_input = $("<div class='wg_op_input wg_popup_italic' contenteditable='true'>previous column</div>").appendTo(opInfo);
+		var opInfo_input = $("<div class='wg_op_input wg_popup_italic' contenteditable='true'>Auto</div>").appendTo(opInfo);
 			$("<div class='wg_op_label'>ARGUMENT</div>").appendTo(opInfo);
 		var opInfo_arg = $("<div class='wg_op_arg wg_popup_italic' contenteditable='true'>...</div>").appendTo(opInfo);
 		// Tools and buttons
@@ -168,13 +168,16 @@ wg.widget = {
 	},
 	attachEventHandlers: function() {
 		// mouse events to cells
-		$("#wikigram_palette").on('mousedown','.wg_cell',function() {
-			wg.widget.focusMove(wg.widget.getCellPosition(this));
+		$("#wikigram_palette").on('mousedown','.wg_cell_variable',function() {
+			var pos = wg.widget.getCellPosition(this);
+			console.log("Select "+$(this).text()+" that contains "+ wg.program.getVariable(pos));
+			wg.widget.focusMove(pos);
 			wg.widget.previousCellValue = $(this).text();
 		});
-		$("#wikigram_palette").on('blur','.wg_cell',function() {
+		$("#wikigram_palette").on('blur','.wg_cell_variable',function() {
 			var newValue = $(this).text();
 			if (newValue!=wg.widget.previousCellValue) {
+				console.log(wg.widget.previousCellValue + "->" + newValue);
 				// update variable
 				var nv =txt2var(newValue);
 				wg.program.setVariable(wg.widget.getCellPosition(this),nv);
@@ -183,17 +186,17 @@ wg.widget = {
 			//console.log(row[$(this).attr('col_id')][$(this).attr('row_id')]);
 		});
 		// argument box
-		$("#wikigram_palette").on('blur','.wg_cell_arg',function() {
-			var newValue = txt2var($(this).text());
-			wg.program.setArgument(wg.widget.getCellPosition(this),newValue);
-			$(this).text(var2txt(newValue));
-		});
+		// $("#wikigram_palette").on('blur','.wg_cell_arg',function() {
+		//	var newValue = txt2var($(this).text());
+		//	wg.program.setArgument(wg.widget.getCellPosition(this),newValue);
+		//	$(this).text(var2txt(newValue));
+		// });
 		// showing seletionbox around the DOM of the cell content
-		$("#wikigram_palette").on('mouseover','.wg_cell',function() {
+		$("#wikigram_palette").on('mouseover','.wg_cell_variable',function() {
 			if(!wg.widget.cellSelectionBox) wg.widget.cellSelectionBox = new wg.SelectionBox(2,"red");
 			var pos = wg.widget.getCellPosition(this);
 			var v = wg.widget.getCell(pos).data;
-			if(v && v.nodeType!==null) {
+			if(v && v.nodeType!==null && v.nodeType!==undefined) {
 				wg.widget.cellSelectionBox.highlight(v);
 			}
 		});
@@ -217,9 +220,9 @@ wg.widget = {
 			var pos = {	s:$(this).parents(".wg_op_container").attr('sheetID'),
 						c:$(this).parents(".wg_op_container").attr('colID')};
 			var argument = txt2var($(this).parents(".wg_op_container").find(".wg_op_arg").text());
-			var candidates = wg.program.getColumn(pos).infer(null,null,argument);
+			var candidateProcedures = wg.program.getColumn(pos).infer(null,null,argument);
 			$("#wikigram_palette").find(".wg_op_container").remove();
-			wg.widget.showCandidates(pos,candidates);
+			wg.widget.showCandidates(pos,candidateProcedures);
 		});
 		// operation row of each column
 		$("#wikigram_palette").on('click','.wg_cell_op',function() {

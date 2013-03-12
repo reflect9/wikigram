@@ -24,6 +24,7 @@
       			"js/generator.js",
       			"js/inspector.js",
       			"js/operation.js",
+            "js/procedure.js",
       			"js/program.js",
       			"js/candidates.js",
       			"js/selectionBox.js",

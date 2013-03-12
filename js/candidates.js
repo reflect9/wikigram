@@ -9,6 +9,7 @@ wg.Candidates = function() {
 	var popup, infoBox;
 	var candidateButtons = [];
 	var candidateHolder;
+	var candidates;
 	var description;
 	var pos;  // which sheet and column this candidate belongs to
 	this.init = function(candidates,pos) {
@@ -18,10 +19,10 @@ wg.Candidates = function() {
 		// Info area
 		this.infoBox = $("<div class='wg_popup_detail_info'></div>").appendTo(this.popup);
 		this.candidateHolder = $("<div class='candidateHolder'></div>").appendTo(this.infoBox);
-		this.candidateButtons = _.map(this.candidates, function(cand,candIndex) {
-			var btn = $("<span class='candidateBtn badge' candID='"+candIndex+"'></span>")
-					.text(candIndex).appendTo(this.candidateHolder);
-			$(btn).click($.proxy(this.clickEvent,{pos:this.pos, candidates:this.candidates,candID:candIndex}));
+		this.candidateButtons = _.map(this.candidates, function(proc,i) {
+			var btn = $("<span class='candidateBtn badge' candID='"+i+"'></span>")
+					.text(proc.title).appendTo(this.candidateHolder);
+			$(btn).click($.proxy(this.clickEvent,{pos:this.pos, candidates:this.candidates,candID:i}));
 			return btn;
 		},this);
 		// Tools and buttons

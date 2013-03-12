@@ -36,14 +36,14 @@ wg.Sheet = function() {
 	/*
 	 *  Each operation is assigned to a new column which will be inserted into the column list.
 	 */
-	this.insertColumnsFromOperations = function(colIndexToInsertAt,opList) {
+	this.insertColumnsFromOperations = function(colIndexToInsertAt,procedure) {
 		console.log("insertColumns from candidate operations");
 		this.restoreSnapshot();
 		this.columns.splice(colIndexToInsertAt,1); // first, delete the output column
 		//this.columns[colIndexToInsertAt].creatorSignature = "output";
 		//this.columns[colIndexToInsertAt].sourceColumn = null;
 		// insert new columns
-		var newColumns = _.map(opList, function(op) {
+		var newColumns = _.map(procedure.operations, function(op) {
 			var newColumn = new wg.Column().init();
 			newColumn.setOperation(op); newColumn.sheet=this;
 			newColumn.creatorSignature = "candidate";
