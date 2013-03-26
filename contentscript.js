@@ -17,7 +17,7 @@ chrome.extension.onMessage.addListener(
 	}
 );
 
-
+// checks whether new tab should automatically open worksheet
 function reportOnLoad() {
 	chrome.extension.sendRequest({
 		action: "reportOnLoad",
@@ -47,11 +47,11 @@ function loadURL(url,domResponseHandler) {
 		/*Callback function to deal with the response*/
 	});
 }
-function openTab(url) {
+function openChildPage(url) {
 	// new tab will be opened with a child widget. 
 	// A child widget allows users to explore the HTML, create a set of operations to return a DOM or value
 	chrome.extension.sendRequest({
-		action: "openTab",
+		action: "openChildPage",
 		url: url
 	}, function(responseText) {
 		console.log(responseText);
