@@ -34,6 +34,9 @@ wg.Candidates = function() {
 		tools.append(button_confirm).append(button_cancel);
 		return this.popup;
 	};
+	this.update = function(candidiates) {
+		// everytime the column variables update, new set of candidates come in.  
+	};
 	// candidate button click event
 	this.clickEvent = function() {
 		wg.program.sheets[this.pos.s].insertColumnsFromOperations(this.pos.c,this.candidates[this.candID]);

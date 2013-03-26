@@ -22,9 +22,6 @@ wg.Sheet = function() {
 		},this);
 		this.created= true;
 	};
-	this.remove = function(indexToRemove) {
-		this.columns = _.filter(this.columns, function(vec,i) { return i!= indexToRemove; },this);
-	};
 	this.append = function(column) {
 		if(column) this.columns.push(column);
 		else {
@@ -32,6 +29,16 @@ wg.Sheet = function() {
 			nv.init();
 			this.columns.push(nv);
 		}
+	};
+	this.removeColumn = function(indexToRemove) {
+		this.columns = _.filter(this.columns, function(vec,i) { return i!= indexToRemove; },this);
+	};
+	this.previewProcedure = function(colIndex,procedure) {
+		var previewResult = _.reduce(procedure.operations, function(memoColumn,op) {
+			var resultedColumn = op.run(memoColumn.row,[],null);
+			return resultedColumn;
+		}, this.columns[colIndex]);
+		return previewResult;
 	};
 	/*
 	 *  Each operation is assigned to a new column which will be inserted into the column list.
@@ -52,7 +59,7 @@ wg.Sheet = function() {
 		insertArrayAt(this.columns,colIndexToInsertAt,newColumns);
 		var candidateColumns = _.filter(this.columns, function(col){  return (col.creatorSignature=="candidate" || col.creatorSignature=="output"); });
 		_.each(candidateColumns, function(col) {
-			col.run();
+			col.row = col.run();
 		});
 	};
 	// for situations when it needs to revert the change of columns
@@ -69,7 +76,11 @@ wg.Sheet = function() {
 	 *  for identification.
 	 */
 	this.insertColumnAt = function(colIndexToInsertAt, column, creatorSignature) {
-		if(!column) column = wg.Column().init();
+		if(!column) {
+			column= new wg.Column();
+			column.init();
+			column.sheet = this;
+		}
 		if(creatorSignature) column.creatorSignature= creatorSignature;
 		if(!colIndexToInsertAt || colIndexToInsertAt<0) colIndexToInsertAt = 0;
 		this.columns.splice(colIndexToInsertAt,0,column);

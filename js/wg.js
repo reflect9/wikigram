@@ -12,17 +12,21 @@ var wg = {
 	selectionBox: null,
 	generator:null,
 	program: null,
+	loaders: [],
 	/*
 	 *  Initialize wikigram worksheet
 	 */
-	init: function() {
+	init: function(prog) {
 		// initialize program
 		console.log("wg created");
-		this.program = new this.Program();
+		if(prog) {
+			this.program = prog;
+		} else {
+			this.program = new this.Program();
+			this.program.init();
+		}
 		console.log("wg program initiated");
-		this.program.init();
-		var pos = {s:0,c:0,r:0};
-		this.program.setVariable(pos,$("body")[0]);
+		this.program.setVariable({s:0,c:0,r:0},$("html")[0]);
 		// initialize generator
 		console.log("generator created");
 		this.generator = new wg.Generator();

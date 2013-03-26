@@ -6,6 +6,8 @@
 	 *		Returns a list of programs that can create O from I
  */
 wg.Generator = function() {
+	this.inputLevel = 0;	// 
+	this.inputRanges = ['Left column','Previous columns','Sheet','Domain','All'];
 	this.GenerateProcedureWithUnknownInput = function(candidateI,O,C) {
 		// this will run GenerateProcedure for each candidateI and return all
 		// having valid result
@@ -22,7 +24,7 @@ wg.Generator = function() {
 		if(isDomList(I)) {
 			// DOM -> select/attribute(text|href|src), attach
 			P.push(GenerateAttribute(I,[],A));
-		} else {
+		} else if(I.length>0) {
 			// variables/string(URL form) -> create
 			P.push(GenerateCreate(I,[],A));
 		}
@@ -56,11 +58,12 @@ wg.Generator = function() {
 			// if output is a variable list
 			P.push(GenerateAttribute(I,O));
 		}
-		return P;
+		return _.flatten(P);
 	};
 	// finding position query: extracting a list of output Dom from a single input Dom
 	GeneratePositionQuery = function(I,O) {
 		var commonAncester = getCommonAncestorMultiple(O);
+		if($(commonAncester).parents().hasElement(I)===false) return []; // if Input does not contain
 		var pathToAncester = $(commonAncester).pathWithNth(I);
 		// collect paths from anscester's children to output nodes
 		var pathFromRepToLeaf = _.uniq(_.map(O, function(o,i) {
@@ -72,7 +75,7 @@ wg.Generator = function() {
 		if(pathToAncester!=="") proc.push(new wg.Operation("Select","Select DOM element",{type:"PositionQuery",path:pathToAncester}));
 		if(pathFromRepToLeaf[0]!=="") proc.push(new wg.Operation("Select","Select DOM element",{type:"PositionQuery",path:pathFromRepToLeaf[0]}));
 		console.log(proc);
-		return new wg.Procedure(proc);
+		return [new wg.Procedure(proc)];
 	};
 	// extract output variables from DOM elements.
 	GenerateAttribute = function(I,O,A) {
@@ -81,13 +84,13 @@ wg.Generator = function() {
 		var validAttributes = [];
 		var candidateAttributes = [
 			{type:"text", func:function(el) { return $(el).text(); }, constraint: function(I,O,A){return true;}},
-			{type:"href", func:function(el) { return $(el).attr('href'); }, constraint: function(I,O,A){return true;}},
-			{type:"src", func:function(el) { return $(el).attr('src');}, constraint: function(I,O,A){return true;}}
+			{type:"href", func:function(el) { return str2Url($(el).attr('href')); }, constraint: function(I,O,A){ return hasAttribute(I,'href'); }},
+			{type:"src", func:function(el) { return $(el).attr('src');}, constraint: function(I,O,A){return hasAttribute(I,'src'); }}
 		];
 		_.each(candidateAttributes, function(cand,candIndex) {
 			if(O) {
 				var extracted = _.map(I, cand.func);
-				if(isCorrectResult(I,extracted)) validAttributes.push(cand);
+				if(isCorrectResult(extracted,O)) validAttributes.push(cand);
 			} else {
 				if(cand.constraint(I,O,C)) validAttributes.push(cand);
 			}

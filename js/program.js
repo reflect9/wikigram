@@ -33,6 +33,13 @@ wg.Program = function() {
 	this.getColumn = function(pos) {
 		return this.sheets[pos.s].columns[pos.c];
 	};
+	this.clearCandidate = function() {
+		_.each(this.sheets, function(sh) {
+			_.each(sh.columns, function(col) {
+				col.creatorSignature=null;
+			});
+		});
+	};
 	/*
 	 * create an empty sheet at the bottom
 	 */

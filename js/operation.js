@@ -7,8 +7,8 @@ wg.Operation = function(type, desc, expr) {
 	this.type = (type)? type: "empty";
 	this.description = (desc)? desc: "empty";
 	this.expr = (expr)? expr: null;
-	this.run = function(I, A) {
-		return wg.runner.run(I,this,A);
+	this.run = function(I, A, pos) {
+		return wg.runner.run(I,this,A, pos);
 	};
 };
 /*
@@ -18,13 +18,13 @@ wg.runner = {
 	/*
 	 *	top-level function  
 	 */
-	run: function(I,op) {
+	run: function(I,op, a, pos) {
 		if(op.type=='Select') {
 			return this.select(I,op.expr);
 		} else if(op.type=='Transform') {
 			return this.transform(I,op.expr);
 		} else if(op.type=='Create') {
-			return this.create(I,op.expr);
+			return this.create(I,op.expr, a, pos);
 		}
 	},
 	select: function(I,ex) {
@@ -57,6 +57,30 @@ wg.runner = {
 			return _.map(I,expr.oper,{'reg':expr.reg});
 		} else if(expr.type=="ArithExpr") {
 			return _.map(I, expr.oper);
+		}
+	},
+	create: function(I, expr, a, pos) {
+		if(expr.type=="load") {
+			// initiate a new loader. return a uniq token back
+			var result = _.map(I, function(i,iIndex) {
+				if(pos) {
+					pos['r'] = iIndex;
+					var newLoader = new wg.Loader(i,pos);
+					wg.loaders.push(newLoader);
+					newLoader.run();
+				}
+				var waitSign = "Page Loading";
+				return waitSign;
+			});
+			return result;
+		} else if(expr.type=="image") {
+			return _.map(I, function(i) {
+				return $("<img class='img_cell'></img>").attr("src",i).get(0);
+			});
+		} else if(expr.type=="text") {
+			return _.map(I, function(i) {
+				return $("<span></span>").text(i).get(0);
+			});
 		}
 	}
 };

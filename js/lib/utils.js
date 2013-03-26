@@ -3,7 +3,8 @@
 // HELPER METHODS ///
 ///////////////////////////////////////////////////////////////////////////
 jQuery.fn.myIndex = function(selector) {
-	return $(this).parent().children(selector).index(this);
+	var i = $(this).parent().children(selector).index(this);
+	return (i && i>-1)? i:0;
 };
 jQuery.fn.justtext = function() {
     return $(this).clone()
@@ -79,6 +80,11 @@ jQuery.fn.tagAndClass = function() {
 	if ($(this).attr("class")) q = q+"."+$(this).attr("class").trim().replace(/\s+/g,".");
 	return q;
 };
+jQuery.fn.tagAndId = function() {
+	var q = $(this).prop("tagName");
+	if ($(this).attr("id")) q = q+"#"+$(this).attr("id");
+	return q;
+};
 jQuery.fn.tag = function() {
 	var q = $(this).prop("tagName");
 	return q;
@@ -90,6 +96,13 @@ jQuery.fn.trimArray = function() {
 		if(validity) result.push(v);
 	});
 	return result;
+};
+jQuery.fn.hasElement = function(el) {
+	return _.filter(this, function(p) { return p==el;}).length>0;
+};
+var html2dom = function(html) {
+	var $dom = $('<html>').html(html);
+	return $dom;
 };
 var getContentAtTop = function(list) {
 	var result = [];
@@ -122,6 +135,11 @@ var getCommonAncestor = function(a,b) {
     });
     return found;
 };
+var hasAttribute = function(list, attrKey) {
+	return _.filter($(list).trimArray(), function(el) {
+		return $(el).attr(attrKey)!==undefined || $(el).attr(attrKey)!==null;
+	}).length===0;
+};
 var RegexProduct = function(rlist) {
 	var resultReg=[];  var rL = _.union(rlist,/^/);  var rR = _.union(rlist,/$/);
 	for(var i in rL) {
@@ -145,7 +163,14 @@ var mergeList = function(list1, list2) {
 };
 var isCorrectResult = function(inputList, outputList) {
 	// checks each outputList is found in corresponding inputList
-	return _.filter(_.zip(inputList,outputList), function(e) { return e[1] && e[0].indexOf(e[1])==-1; }).length===0;
+	if($(inputList).trimArray().length===0) return false;	// if input creates nothing, incorrect.
+	else if($(outputList).trimArray().length===0) return true; // if input has something and output is empty, then all the inputs are accepted. 
+	// if input and outputlist are both nonempty, then we check each 
+	var nonMatched = _.filter(_.zip($(inputList).trimArray(),$(outputList).trimArray()), function(e) {
+		// if input empty or, output cannot be found in input, then it's nonmatched object 
+		return !e[0] || (e[0] && e[1] && e[0].indexOf(e[1])==-1);
+	});
+	return nonMatched.length===0;
 };
 var isURL = function(list) {
 	var toCheck = (_.isArray(list))? list: [list];
@@ -162,7 +187,8 @@ var isSrc = function(list) {
 	}).length===0;
 };
 var isDomList = function(list) {
-	return (list[0].nodeType!==null && list[0].nodeType!==undefined);
+	var trimmedList = $(list).trimArray();
+	return trimmedList.length>0 && _.filter(trimmedList, function(e) {  return !isDom(e); }).length ===0;
 };
 var isDom = function(el) {
 	return (el && el.nodeType!==null && el.nodeType!==undefined);
@@ -218,13 +244,39 @@ var txt2var = function(txt) {
 // convert list or single string/integer to string without quotation
 var var2txt = function(v) {
 	if (v===null || v===undefined) return "";
-	if(v.nodeType!==undefined && v.nodeType!==null) {
-		// variable is DOM element
+	if(isDom(v)) {
 		return "[D:"+$(v).prop('tagName')+"]"+$(v).text();
 	} else {
 		return JSON.stringify(v).replace(/^\"/ig,"").replace(/\"$/ig,"");
 	}
 };
+
+var var2cell = function(v) {
+	if (v===null || v===undefined) return "";
+	if(isDom(v)) {
+		var span;
+		if($(v).prop('tagName').match(/img/ig)) {
+			span = $("<span varType='dom'></span>").addClass('');
+			$(span).append($("<span class='cellButton label label-inverse'></span>").append($(v).tagAndId()));
+			$("<img></img>").attr('src',$(v).attr('src')).appendTo(span);
+			return span;
+		} else {
+			span = $("<span varType='dom'></span>").addClass('');
+			var label = $("<span class='cellButton label label-inverse'></span>").append($(v).tagAndId()).appendTo(span);
+			// A and HTML labels open new tab with the widget open
+			if($(v).tagAndId().match(/(^HTML|^A)/ig)) {
+				$(label).mouseup(function() {
+					openTab(v.url);
+				});
+			}
+			$(span).append($(v).text().replace(/\s{2,}/ig,""));
+			return span;
+		}
+	} else {
+		return JSON.stringify(v).replace(/^\"/ig,"").replace(/\"$/ig,"");
+	}
+};
+
 var str2value = function(str) {
 	var list = str.replace(/[\"|\[\]]/g,"").split(",");
 	parsedList = _.map(list, function(e) {
@@ -234,6 +286,15 @@ var str2value = function(str) {
 	});
 	return parsedList;
 };
+var str2Url = function(str) {
+	var domain = $.url().attr("protocol")+"://"+$.url().attr("host")+"/";
+	if(str && !str.match(/http(s)?:\/\//i)) {
+		return domain+str;
+	} else {
+		return str;
+	}
+};
+
 if(typeof(String.prototype.trim) === "undefined") {
     String.prototype.trim = function()
     {

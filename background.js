@@ -1,5 +1,7 @@
 
-
+// shared wg.program 
+var program = null;
+var tabs = {};
 
 window.addEventListener('load', function() {
 	init();
@@ -12,19 +14,74 @@ function init() {
 	chrome.browserAction.onClicked.addListener(function() {
 		chrome.tabs.getSelected(null, function(tab) {
 			console.log("send message openWorksheet");
-			chrome.tabs.sendMessage(tab.id, {name: "openWorksheet"},function() {});	
+			tabs[tab.id] = {host : $.url(tab.url).attr('host')};
+			chrome.tabs.sendMessage(tab.id, {action: "openWorksheet", program:program },function() {});
 		});
 	});
-	
-	// 
 	chrome.extension.onRequest.addListener(
-		function(request, sender, sendResponse) {
-			console.log(request.name);
+		function(request, sender, callback) {
+			console.log(request.action);
+			// loading cross-domain web page
+			if(request.action == "xhttp") {
+				var xhttp = new XMLHttpRequest(),
+						method = request.method ? request.method.toUpperCase() : 'GET';
+				xhttp.onreadystatechange = function() {
+					if(xhttp.readyState == 4){
+						callback(xhttp.responseText);
+						xhttp.onreadystatechange = xhttp.open = xhttp.send = null;
+						xhttp = null;
+					}
+				};
+				if (method == 'POST') {
+					xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+					xhttp.setRequestHeader("Content-length", request.data.length);
+				}
+				xhttp.open(method, request.url, true);
+				xhttp.send(request.data);
+			} // end of cross domain loading
+			if(request.action == "reportOnLoad") {
+				console.log(request);
+				console.log(sender);
+				var activeHosts = _.map(tabs, function(t) { return t.host; });
+				if(tabs[sender.tab.id]) {
+					callback("openWorksheet",null);
+				}
+			}
+			if(request.action == "openTab") {
+				chrome.tabs.create({'url': request.url, active:true, index:sender.tab.index+1}, function(tab) {
+					tabs[tab.id] = {host : $.url(tab.url).attr('host')};
+					//chrome.tabs.sendMessage(tab.id, {action: "openWorksheet", program:program },function() {});
+				});
+			}
 		}
 	);
 }
 
+function loadURL(url) {
+	var xhr = new XMLHttpRequest();
+	xhr.open("GET", url, true);
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4) {
+			// JSON.parse does not evaluate the attacker's scripts.
+			var resp = $(xhr.responseText);
+			console.log(resp);
+		}
+	};
+	xhr.send();
+}
+
+function openTab(url) {
+
+}
 
 
-
+// function HTMLParser(aHTMLString){
+//   var html = document.implementation.createDocument("http://www.w3.org/1999/xhtml", "html", null),
+// 	body = document.createElementNS("http://www.w3.org/1999/xhtml", "body");
+//   html.documentElement.appendChild(body);
+//   body.appendChild(Components.classes["@mozilla.org/feed-unescapehtml;1"]
+// 	.getService(Components.interfaces.nsIScriptableUnescapeHTML)
+// 	.parseFragment(aHTMLString, false, null, body));
+//   return body;
+// }
 

@@ -6,7 +6,7 @@
 wg.Column = function() {
 	this.sheet = null;
 	this.row = [];
-	this.sourceColumn = null;
+	this.inputPos = null;
 	this.operation = null;
 	this.candidateOperations = [];  //
 	this.creatorSignature = null;
@@ -18,18 +18,27 @@ wg.Column = function() {
 		return this;
 	};
 	this.infer = function(i,o,a) {
-		// use source column and current row to infer candidateOperations
-		var input = (i)? i:$(this.prev().row).trimArray();
-		var output = $(this.row).trimArray();
-		var argument = (o)? o:this.args;
-		var inferredProcedures = wg.generator.GenerateProcedure(input,output,argument);
+		var inferredProcedures = wg.generator.GenerateProcedure(i,o,a);
 		this.candidateOperations = inferredProcedures;
-		// inferredPrograms have 'type' and 'program'(array)
-		// tell widget to show this column's candidates
-		//var pos = {s:wg.program.sheets.indexOf(this.sheet),  c:this.sheet.columns.indexOf(this), r:null};
-		//wg.widget.showCandidates(pos);
 		console.log(inferredProcedures);
 		return inferredProcedures;
+	};
+	this.inferInOp = function() {
+		var i = $(this.prev().row).trimArray();
+		var o = $(this.row).trimArray();
+		var a = this.args;
+		return this.infer(i,o,a);
+	};
+	this.inferOutOp = function(){
+		var i = $(this.row).trimArray();
+		var o = $(this.next().row).trimArray();
+		var a = this.args;
+		return this.infer(i,o,a);
+	};
+	this.getPos = function() {
+		var mySheetIndex = wg.program.sheets.indexOf(this.sheet);
+		var myColumnIndex = this.sheet.columns.indexOf(this);
+		return {s:mySheetIndex, c:myColumnIndex };
 	};
 	this.prev = function() {
 		var myIndex = this.sheet.columns.indexOf(this);
@@ -44,10 +53,10 @@ wg.Column = function() {
 	};
 	this.run = function() {
 		// apply the operation to get the result
-		var I = (this.sourceColumn)? this.sourceColumn.row : this.prev().row;
-		var result = this.operation.run(getContentAtTop(I), getContentAtTop(this.args));
+		var I = (this.inputPos)? wg.program.sheets[this.inputPos.s].columns[this.inputPos.c].row : this.prev().row;
+		var result = this.operation.run(getContentAtTop(I), getContentAtTop(this.args), this.getPos());
 		// extend the result to have at least 50 rows
-		this.row = mergeList(result, _.map(_.range(50), function() { return null; }));
+		return mergeList(result, _.map(_.range(50), function() { return null; }));
 	};
 	this.push = function(v) {
 		this.row.push(v);
@@ -59,6 +68,19 @@ wg.Column = function() {
 		return this.row.length;
 	};
 	this.toString = function() {
-		return [this.args,this.row];
+		return {operation: this.operation,
+				inputPos: this.inputPos,
+				row: _.filter(_.map(this.row, function(r) {
+					if(!r) return null;
+					return (isDom(r))? {
+						type:"dom",
+						url:$.url().attr("source"),
+						html:r.outerHTML
+					} :   {
+						type:"variable",
+						value:r
+					};
+				}), function(n) { return n; })
+		};
 	};
 };
