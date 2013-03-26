@@ -1,7 +1,7 @@
 {
 
   "name" : "WikiGram",
-  "version" : "1.0",
+  "version" : "1.1",
   "description" : "wikigram extractor",
   "background" : {
     "scripts": ["js/lib/jquery.min.js",
