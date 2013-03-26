@@ -69,6 +69,7 @@ wg.widget = {
 	createColumn: function(column) {
 		var col = $("<div class='wg_column'></div>");
 		var header = $("<div class='wg_cell wg_cell_header' row_id='header'></div>").appendTo(col);
+		var info = $("<div style='color:#eee; margin-top:3px;' class='wg_cell_info'>.</div>").appendTo(header);
 		var tools = $("<div class='wg_cell_tools'></div>").appendTo(header);
 		$(tools).append($("<i class='icon-plus icon'></i>"))
 				.append($("<i class='icon-remove icon'></i>"));
