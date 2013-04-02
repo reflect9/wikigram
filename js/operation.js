@@ -4,11 +4,20 @@
  */
 
 wg.Operation = function(type, desc, expr) {
-	this.type = (type)? type: "empty";
-	this.description = (desc)? desc: "empty";
+	this.type = (type)? type: ".";
+	this.description = (desc)? desc: ".";
+	this.inputPos = "prev"; // "prev" or pos object
+	this.argPos = null; // null or "pprev" or pos object
 	this.expr = (expr)? expr: null;
-	this.run = function(I, A, pos) {
+	this.run = function(pos) {
+		var iP = (this.inputPos=="prev")? {s:pos.s, c:pos.c-1, r:0}: this.inputPos;
+		var aP = (this.argPos=="prev")? {s:pos.s, c:pos.c-1, r:0}: this.argPos;
+		var I = wg.program.getRow(iP);
+		var A = wg.program.getRow(aP);
 		return wg.runner.run(I,this,A, pos);
+	};
+	this.printOut = function() {
+		return this;
 	};
 };
 /*
@@ -62,14 +71,16 @@ wg.runner = {
 	create: function(I, expr, a, pos) {
 		if(expr.type=="load") {
 			// initiate a new loader. return a uniq token back
-			var result = _.map(I, function(i,iIndex) {
+			// loading URL only the top 15 
+			var limitedI = _.filter(I, function(i,iIndex) { return iIndex<15; });
+			var result = _.map(limitedI, function(i,iIndex) {
 				if(pos) {
 					pos['r'] = iIndex;
 					var newLoader = new wg.Loader(i,pos);
 					wg.loaders.push(newLoader);
 					newLoader.run();
 				}
-				var waitSign = "Page Loading";
+				var waitSign = "";
 				return waitSign;
 			});
 			return result;
