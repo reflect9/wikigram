@@ -172,6 +172,20 @@ var isCorrectResult = function(inputList, outputList) {
 	});
 	return nonMatched.length===0;
 };
+var isOutputContainInput = function(inputList, outputList) {
+	// used in GenerateAttach.  checks whether every output.html contains input.outerHTML
+	var iT = $(inputList).trimArray(); var oT = $(outputList).trimArray();
+	if(!isDomList(iT) || !isDomList(oT)) return false;
+	if(iT.length<2 || oT.length<2 || iT.length<oT.length) return false;	// if input creates nothing, incorrect.
+	var zipped = _.zip(iT.slice(0,oT.length),oT);	// match the oT.length
+	var nonMatched = _.filter(zipped, function(e) {
+		// if input empty or, output cannot be found in input, then it's nonmatched object 
+		if(!e[0] || e[0].outerHTML.match(/^\s*$/) || e[1].outerHTML.match(/^\s*$/)) return true;
+		if(e[1].innerHTML.indexOf(e[0].outerHTML)!==-1) return false;
+		else return true;
+	});
+	return nonMatched.length===0;
+};
 var isURL = function(list) {
 	var toCheck = (_.isArray(list))? list: [list];
 	toCheck = $(toCheck).trimArray();
@@ -183,7 +197,7 @@ var isSrc = function(list) {
 	var toCheck = (_.isArray(list))? list: [list];
 	toCheck = $(toCheck).trimArray();
 	return _.filter(toCheck, function(e) {
-		return _.isString(e)===false || e.indexOf("http")!==0;
+		return _.isString(e)===false || !e.match(/(png)|(jpg)|(gif)|(bmp)/ig) || !e.match(/html/ig);
 	}).length===0;
 };
 var isDomList = function(list) {
@@ -266,7 +280,9 @@ var var2cell = function(v) {
 			// A and HTML labels open new tab with the widget open
 			if($(v).tagAndId().match(/(^HTML|^A)/ig)) {
 				$(label).mouseup(function() {
-					openTab(v.url);
+					var cellDiv = $(this).parents(".wg_cell");
+					var pos = wg.widget.getCellPosition(cellDiv);
+					openChildPage(v.url,pos);
 				});
 			}
 			$(span).append($(v).text().replace(/\s{2,}/ig,""));
@@ -293,6 +309,49 @@ var str2Url = function(str) {
 	} else {
 		return str;
 	}
+};
+var productThreeArrays = function(a,b,c, cons) {
+	var result = [];
+	_.each(a, function(ael) {
+		_.each(b, function(bel) {
+			_.each(c, function(cel) {
+				if(cons(ael,bel,cel)===true)
+					result.push([ael,bel,cel]);
+			});
+		});
+	});
+	return result;
+};
+var isSameObject = function(x, y)
+{
+	if(x===null || y===null) { return false;}
+  var p;
+  for(p in y) {
+      if(typeof(x[p])=='undefined') {return false;}
+  }
+  for(p in y) {
+      if (y[p]) {
+          switch(typeof(y[p])) {
+              case 'object':
+                  if (!y[p].equals(x[p])) { return false; } break;
+              case 'function':
+                  if (typeof(x[p])=='undefined' ||
+                      (p != 'equals' && y[p].toString() != x[p].toString()))
+                      return false;
+                  break;
+              default:
+                  if (y[p] != x[p]) { return false; }
+          }
+      } else {
+          if (x[p])
+              return false;
+      }
+  }
+
+  for(p in x) {
+      if(typeof(y[p])=='undefined') {return false;}
+  }
+  return true;
 };
 
 if(typeof(String.prototype.trim) === "undefined") {
