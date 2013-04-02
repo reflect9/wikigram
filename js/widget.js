@@ -18,13 +18,16 @@ wg.widget = {
 	init: function(sheets) {
 		if(!sheets) {   sheets = [new wg.Sheet()];   sheets[0].init();  }
 		if(this.container) $(this.container).remove();
-		this.container= $("<div class='wikigram_container'></div>").appendTo("body");
-		this.content = $("<div id='wikigram_content'></div></div>").appendTo(this.container);
+		this.container= $("<div class='wikigram_container'></div>").appendTo("body")[0];
+		this.content = $("<div id='wikigram_content'></div></div>").appendTo(this.container)[0];
 		// create toolbar
-		this.toolbar = $("<div id='wikigram_toolbar'></div>").appendTo(this.content);
+		this.toolbar = $("<div id='wikigram_toolbar'></div>").appendTo(this.content)[0];
 		// append toolbar buttons
 		this.btn_inspect = $("<button class='btn' id='but_inspect'>inspect</button>").appendTo(this.toolbar).click(wg.inspector.toggle);
 		this.btn_reset = $("<button class='btn' id='but_reset'>reset</button>").appendTo(this.toolbar).click(wg.reset);
+		if(wg.tab && wg.tab.role=="child") {
+			this.btn_save = $("<button class='btn' id='but_save'>Save and Back</button>").appendTo(this.toolbar).click(wg.save);
+		}
 		// create data table
 		this.palette = $("<div id='wikigram_palette'></div>").appendTo(this.content);
 		this.updatePalette(sheets);
@@ -35,7 +38,10 @@ wg.widget = {
 	},
 	// update the presentation using current program
 	redraw: function() {
+		var sheet = $(this.palette).find("div.wg_sheet");
+		var prevScroll = {top: $(sheet).scrollTop(), left: $(sheet).scrollLeft()};
 		this.updatePalette(wg.program.sheets);
+		$(this.palette).find("div.wg_sheet").scrollTop(prevScroll.top).scrollLeft(prevScroll.left);
 	},
 	// delete existing sheets and create new palettes.
 	updatePalette: function(sheets) {
@@ -69,7 +75,8 @@ wg.widget = {
 	createColumn: function(column) {
 		var col = $("<div class='wg_column'></div>");
 		var header = $("<div class='wg_cell wg_cell_header' row_id='header'></div>").appendTo(col);
-		var info = $("<div style='color:#eee; margin-top:3px;' class='wg_cell_info'>.</div>").appendTo(header);
+		var info = $("<div class='wg_cell_info'></div>").text(column.operation.description).appendTo(header);
+		var colIndexNumber = $("<div class='wg_cell_index'>"+column.getPos().c+"</div>").appendTo(header);
 		var tools = $("<div class='wg_cell_tools'></div>").appendTo(header);
 		$(tools).append($("<i class='icon-plus icon'></i>"))
 				.append($("<i class='icon-remove icon'></i>"));
@@ -165,9 +172,9 @@ wg.widget = {
 		opPopup.popupContainer.css("visibility",(wg.widget.showPopup)? "visible":"hidden");
 		$(wg.widget.palette).prepend(opPopup.popupContainer);
 		// call generator to infer in/outbound op candidates
-		var inboundCandidates =wg.program.getColumn(pos).inferInOp();
-		var outboundCandidates =wg.program.getColumn(pos).inferOutOp();
-		opPopup.updateBoth(inboundCandidates,outboundCandidates);
+		var column = wg.program.getColumn(pos);
+		column.inferAll();
+		opPopup.updateBoth(column.inCandidates,column.outCandidates);
 		// update position of the popup
 		wg.widget.locatePopup();
 	},
@@ -199,10 +206,11 @@ wg.widget = {
 		// mouse events to cells
 		$("#wikigram_palette").on('mousedown','.wg_cell_variable',function() {
 			var pos = wg.widget.getCellPosition(this);
-			if(wg.widget.focus.c==pos.c && wg.widget.focus.r==pos.r && wg.widget.focus.s==pos.s) {
-				wg.widget.showPopup = !wg.widget.showPopup;
-				console.log(wg.widget.showPopup);
-			}
+			// toggle popup
+			// if(wg.widget.focus.c==pos.c && wg.widget.focus.r==pos.r && wg.widget.focus.s==pos.s) {
+			// 	wg.widget.showPopup = !wg.widget.showPopup;
+			// 	console.log(wg.widget.showPopup);
+			// }
 			console.log("Select "+$(this).text()+" that contains "+ wg.program.getVariable(pos));
 			wg.widget.focusMove(pos);
 			wg.widget.previousCellValue = $(this).text();
@@ -236,7 +244,7 @@ wg.widget = {
 					document.addEventListener('mouseup',wg.Cell.dragEndEventHandler,false);
 				},
 				stop: function(event,ui) {
-					//document.removeEventListener('mouseup',$.proxy(wg.Cell.dragEndEventHandler,{ui:ui}),true);
+					//$(".cellButton").draggable("destroy");
 				}
 			});
 		});
