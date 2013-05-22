@@ -4,79 +4,121 @@
  *
  * Copyright (c) 2013 Tak Yeon Lee
  */
-var wg = {
-	status: false,
-	selectedElement: null,
-	hoveredElement: null,
-	selectionStatus: false,
-	selectionBox: null,
-	generator:null,
-	language:null,
-	sample:null,
-	program: null,
-	tab: null,
-	loaders: [],
-	/*
-	 *  Initialize wikigram worksheet
-			prog : initial content of worksheet operations. will be used when loading predefined or existing program 
-			tabInfo :	widget UI and how the progrm would work depends on whether the tab is 'master' or 'child'
-						'master' tabs can have something like run/save functionalities.
-						'child' tabs will have 'save&close' to return the procedure back to it's master tab.
-	 */
-	init: function(prog, tabInfo) {
-		// initialize program
-		console.log("wg created");
-		// initialize generator
-		//console.log("generator created");
-		this.generator = new wg.Generator();
-		if(prog) {
-			this.program = prog;
-		} else {
-			this.program = new this.Program();
-			this.program.init();
-		}
-		this.tab = tabInfo;
-		//console.log("wg program initiated");
-		this.program.setVariable({s:0,c:0,r:0},$("html")[0]);
-		// initialize widget UI
-		//console.log("widget initiated");
-		this.widget.init(this.program.sheets);
+wg = {
+	templates:{},
+	enhancements:[],
+
+	init: function(tabInfo) {
+		wg.generator= new wg.Generator();
+		wg.language= new wg.Language();
+		wg.panel= new wg.Panel();
+		if(tabInfo) wg.tab = tabInfo;
+		async.series([
+			wg.loadTemplates,
+			wg.loadEnhancements,
+			wg.redraw
+		]);
 	},
-	/*
-	 *  Reset
-	 */
+	redraw: function() {
+		wg.panel.redraw();
+	},
+	loadTemplates: function(callback) {
+		async.series([
+			function(callbackLoadFile) {
+				loadFile('template/panel-template.html',function(temp) {
+					wg.templates.panel=temp;
+					callbackLoadFile(null,true);
+				});
+			},
+			function(callbackLoadFile) {
+				loadFile('template/stage-template.html',function(temp) {
+					wg.templates.stage=temp;
+					callbackLoadFile(null,true);
+				});
+			},
+			function(callbackLoadFile) {
+				loadFile('template/nav-template.html',function(temp) {
+					wg.templates.nav=temp;
+					callbackLoadFile(null,true);
+				});
+			},
+			function(callbackLoadFile) {
+				loadFile('template/tool-template.html',function(temp) {
+					wg.templates.tool=temp;
+					callbackLoadFile(null,true);
+				});
+			}
+		], function(err,result) {
+			callback(null,true);
+		});
+	},
+	loadEnhancements: function(callback) {
+		var listOfEnhancementData = wg.SampleEnhancements;  // just for now. 
+		wg.enhancements = _.map(listOfEnhancementData, function(enhData) {
+			var nE = new wg.Enhancement();
+			nE.load(enhData);
+			return nE;
+		});
+		var defaultEnhancement = wg.enhancements[0];
+		wg.panel.stage.setEnhancement(defaultEnhancement);
+		callback(null,true);
+	},
+	getEnhancement: function(enhID) {
+		return _.find(wg.enhancements, function(enh){return enhID==enh.id;});
+	},
+	openEnhancement: function(enhID) {
+		var enh = wg.getEnhancement(enhID);
+		wg.panel.stage.setEnhancement(enh);
+		// updated selectedness of the enhancement
+		_.each(wg.enhancements, function(enh){ enh.selected=false; });
+		enh.selected=true;
+		// 
+		wg.redraw();
+	},
+	createEnhancement: function() {
+		console.log("create method run");
+		var nE = new wg.Enhancement();   nE.reset();	wg.enhancements.push(nE);
+		wg.redraw();
+	},
 	reset: function() {
 		wg.init();
 	},
-	/**
-	 * Open / close wg
-	 */
 	toggle: function() {
-		if (this.status === true)
-			this.close();
+		if (wg.status === true)
+			wg.close();
 		else
-			this.open();
-	},
-	open: function() {
-		this.status = true;
-		this.widget.open();
-		this.enableSelection();
-	},
-	close: function() {
-		this.status = false;
-		this.widget.close();
-		this.disableSelection();
+			wg.open();
 	},
 	/*	
 		send current operations to the master worksheet
 	*/
 	save: function() {
-		var opList = wg.program.getOperations({s:0, c:0, r:0});
-		if(opList && opList!==[] && wg.tab.from && wg.tab.targetColumnPosition) {
-			returnSubProcedure(opList,wg.tab.from,wg.tab.targetColumnPosition);
-		}
+		console.error("TBD:not implemented");
+		// var opList = wg.program.getOperations({s:0, c:0, r:0});
+		// if(opList && opList!==[] && wg.tab.from && wg.tab.targetColumnPosition) {
+		//	returnSubProcedure(opList,wg.tab.from,wg.tab.targetColumnPosition);
+		// }
 	},
 	toString: function() {
-		return this.program.toString();
+		console.error("TBD:not implemented");
+		// return wg.program.toString();
+	},
+	/*
+		Scroll the page to show el at the center, and show highlight box
+	*/
+	highlightElement: function(el,options) {
+		if(options && options.scroll) {
+			// scroll the page to show the element
+			scrollToElement($('body'),el,{duration:200,marginTop:50});
+		}
+		// create highlightBox if not exist, and run
+		if(!wg.elementHighlightBox) wg.elementHighlightBox = new wg.SelectionBox(2,"blue");
+		wg.elementHighlightBox.highlight(el);
+	},
+	unhighlightElement: function(el,options) {
+		wg.elementHighlightBox.hide();
 	}
+
+
+
 };
